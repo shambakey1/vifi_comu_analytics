@@ -42,5 +42,4 @@ VIFI follows a phased approach during devlopement. Thus, the more use cases we h
 
 ### Who do I talk to? ###
 
-* Repo owner or admin
-* Other community or team contact
+For further questions, please refer to Mohammed Elshambakey (melshambe@uncc.edu).
