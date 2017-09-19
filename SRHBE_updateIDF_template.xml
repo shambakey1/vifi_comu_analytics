@@ -1,0 +1,394 @@
+<?xml version="1.0" ?>
+<template encoding-version="1.0">
+  <description>NIFI template for the updateIDF server in SRHBE use case</description>
+  <groupId>d0b8eb48-0159-1000-84b1-e927546235ab</groupId>
+  <name>SRHBE_updateIDF_template</name>
+  <snippet>
+    <connections>
+      <id>c1b85b1f-015c-1000-0000-000000000000</id>
+      <parentGroupId>d0b8eb48-0159-1000-0000-000000000000</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <destination>
+        <groupId>bbcc6217-015c-1000-0000-000000000000</groupId>
+        <id>bbce12f0-015c-1000-0000-000000000000</id>
+        <type>INPUT_PORT</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name></name>
+      <source>
+        <groupId>d0b8eb48-0159-1000-0000-000000000000</groupId>
+        <id>c1b7ee72-015c-1000-0000-000000000000</id>
+        <type>INPUT_PORT</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <inputPorts>
+      <id>c1b7ee72-015c-1000-0000-000000000000</id>
+      <parentGroupId>d0b8eb48-0159-1000-0000-000000000000</parentGroupId>
+      <position>
+        <x>72.42365440971139</x>
+        <y>0.0</y>
+      </position>
+      <comments></comments>
+      <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+      <name>SRHBE_updateIDF_Server_External_Port</name>
+      <state>STOPPED</state>
+      <transmitting>false</transmitting>
+      <type>INPUT_PORT</type>
+    </inputPorts>
+    <processGroups>
+      <id>bbcc6217-015c-1000-0000-000000000000</id>
+      <parentGroupId>d0b8eb48-0159-1000-0000-000000000000</parentGroupId>
+      <position>
+        <x>0.0</x>
+        <y>124.91693981114668</y>
+      </position>
+      <comments></comments>
+      <contents>
+        <connections>
+          <id>bbce12f4-015c-1000-0000-000000000000</id>
+          <parentGroupId>bbcc6217-015c-1000-0000-000000000000</parentGroupId>
+          <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+          <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+          <destination>
+            <groupId>bbcc6217-015c-1000-0000-000000000000</groupId>
+            <id>bbce12f1-015c-1000-0000-000000000000</id>
+            <type>PROCESSOR</type>
+          </destination>
+          <flowFileExpiration>0 sec</flowFileExpiration>
+          <labelIndex>1</labelIndex>
+          <name></name>
+          <source>
+            <groupId>bbcc6217-015c-1000-0000-000000000000</groupId>
+            <id>bbce12f0-015c-1000-0000-000000000000</id>
+            <type>INPUT_PORT</type>
+          </source>
+          <zIndex>0</zIndex>
+        </connections>
+        <connections>
+          <id>bbce12f5-015c-1000-0000-000000000000</id>
+          <parentGroupId>bbcc6217-015c-1000-0000-000000000000</parentGroupId>
+          <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+          <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+          <destination>
+            <groupId>bbcc6217-015c-1000-0000-000000000000</groupId>
+            <id>bbce12f3-015c-1000-0000-000000000000</id>
+            <type>PROCESSOR</type>
+          </destination>
+          <flowFileExpiration>0 sec</flowFileExpiration>
+          <labelIndex>1</labelIndex>
+          <name></name>
+          <selectedRelationships>success</selectedRelationships>
+          <source>
+            <groupId>bbcc6217-015c-1000-0000-000000000000</groupId>
+            <id>bbce12f1-015c-1000-0000-000000000000</id>
+            <type>PROCESSOR</type>
+          </source>
+          <zIndex>0</zIndex>
+        </connections>
+        <inputPorts>
+          <id>bbce12f0-015c-1000-0000-000000000000</id>
+          <parentGroupId>bbcc6217-015c-1000-0000-000000000000</parentGroupId>
+          <position>
+            <x>593.5290094235121</x>
+            <y>230.0841584537544</y>
+          </position>
+          <comments></comments>
+          <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+          <name>SRHBE_updateIDF_Server_Internal_Port</name>
+          <state>STOPPED</state>
+          <type>INPUT_PORT</type>
+        </inputPorts>
+        <labels>
+          <id>bbce12ee-015c-1000-0000-000000000000</id>
+          <parentGroupId>bbcc6217-015c-1000-0000-000000000000</parentGroupId>
+          <position>
+            <x>557.0000065871865</x>
+            <y>128.0000085478714</y>
+          </position>
+          <height>196.9564208984375</height>
+          <label>         Receives updateIDF requests</label>
+          <style>
+            <entry>
+              <key>background-color</key>
+              <value>#6ca36b</value>
+            </entry>
+            <entry>
+              <key>font-size</key>
+              <value>22px</value>
+            </entry>
+          </style>
+          <width>770.5865478515625</width>
+        </labels>
+        <labels>
+          <id>bbce12ef-015c-1000-0000-000000000000</id>
+          <parentGroupId>bbcc6217-015c-1000-0000-000000000000</parentGroupId>
+          <position>
+            <x>588.6492409171271</x>
+            <y>359.36235683272014</y>
+          </position>
+          <height>252.31228637695312</height>
+          <label>Update IDF:
+1. Scheduled to checks for existing requests locally.
+2. If desired, uploads results to specific location (e.g., AWS S3 bucket).</label>
+          <style>
+            <entry>
+              <key>background-color</key>
+              <value>#cc6e6e</value>
+            </entry>
+            <entry>
+              <key>font-size</key>
+              <value>22px</value>
+            </entry>
+          </style>
+          <width>717.9262084960938</width>
+        </labels>
+        <processors>
+          <id>bbce12f1-015c-1000-0000-000000000000</id>
+          <parentGroupId>bbcc6217-015c-1000-0000-000000000000</parentGroupId>
+          <position>
+            <x>918.5290094235121</x>
+            <y>193.0841584537544</y>
+          </position>
+          <config>
+            <bulletinLevel>WARN</bulletinLevel>
+            <comments></comments>
+            <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+            <descriptors>
+              <entry>
+                <key>Directory</key>
+                <value>
+                  <name>Directory</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Conflict Resolution Strategy</key>
+                <value>
+                  <name>Conflict Resolution Strategy</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Create Missing Directories</key>
+                <value>
+                  <name>Create Missing Directories</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Maximum File Count</key>
+                <value>
+                  <name>Maximum File Count</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Last Modified Time</key>
+                <value>
+                  <name>Last Modified Time</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Permissions</key>
+                <value>
+                  <name>Permissions</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Owner</key>
+                <value>
+                  <name>Owner</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Group</key>
+                <value>
+                  <name>Group</name>
+                </value>
+              </entry>
+            </descriptors>
+            <executionNode>ALL</executionNode>
+            <lossTolerant>false</lossTolerant>
+            <penaltyDuration>30 sec</penaltyDuration>
+            <properties>
+              <entry>
+                <key>Directory</key>
+                <value>/home/ubuntu/requests/srhbe/in/${userid}/${path}</value>
+              </entry>
+              <entry>
+                <key>Conflict Resolution Strategy</key>
+                <value>replace</value>
+              </entry>
+              <entry>
+                <key>Create Missing Directories</key>
+                <value>true</value>
+              </entry>
+              <entry>
+                <key>Maximum File Count</key>
+              </entry>
+              <entry>
+                <key>Last Modified Time</key>
+              </entry>
+              <entry>
+                <key>Permissions</key>
+                <value>777</value>
+              </entry>
+              <entry>
+                <key>Owner</key>
+              </entry>
+              <entry>
+                <key>Group</key>
+              </entry>
+            </properties>
+            <runDurationMillis>0</runDurationMillis>
+            <schedulingPeriod>0 sec</schedulingPeriod>
+            <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+            <yieldDuration>1 sec</yieldDuration>
+          </config>
+          <name>Keep Incoming Requests</name>
+          <relationships>
+            <autoTerminate>true</autoTerminate>
+            <name>failure</name>
+          </relationships>
+          <relationships>
+            <autoTerminate>false</autoTerminate>
+            <name>success</name>
+          </relationships>
+          <style></style>
+          <type>org.apache.nifi.processors.standard.PutFile</type>
+        </processors>
+        <processors>
+          <id>bbce12f2-015c-1000-0000-000000000000</id>
+          <parentGroupId>bbcc6217-015c-1000-0000-000000000000</parentGroupId>
+          <position>
+            <x>740.6918398593347</x>
+            <y>455.7671209304899</y>
+          </position>
+          <config>
+            <bulletinLevel>WARN</bulletinLevel>
+            <comments></comments>
+            <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+            <descriptors>
+              <entry>
+                <key>Command</key>
+                <value>
+                  <name>Command</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Command Arguments</key>
+                <value>
+                  <name>Command Arguments</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Batch Duration</key>
+                <value>
+                  <name>Batch Duration</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Redirect Error Stream</key>
+                <value>
+                  <name>Redirect Error Stream</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Argument Delimiter</key>
+                <value>
+                  <name>Argument Delimiter</name>
+                </value>
+              </entry>
+            </descriptors>
+            <executionNode>ALL</executionNode>
+            <lossTolerant>false</lossTolerant>
+            <penaltyDuration>30 sec</penaltyDuration>
+            <properties>
+              <entry>
+                <key>Command</key>
+                <value>python</value>
+              </entry>
+              <entry>
+                <key>Command Arguments</key>
+                <value>/home/ubuntu/poc_scripts/updateIDF4.py</value>
+              </entry>
+              <entry>
+                <key>Batch Duration</key>
+              </entry>
+              <entry>
+                <key>Redirect Error Stream</key>
+                <value>false</value>
+              </entry>
+              <entry>
+                <key>Argument Delimiter</key>
+                <value> </value>
+              </entry>
+            </properties>
+            <runDurationMillis>0</runDurationMillis>
+            <schedulingPeriod>3 sec</schedulingPeriod>
+            <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+            <yieldDuration>1 sec</yieldDuration>
+          </config>
+          <name>Execute PAC</name>
+          <relationships>
+            <autoTerminate>true</autoTerminate>
+            <name>success</name>
+          </relationships>
+          <style></style>
+          <type>org.apache.nifi.processors.standard.ExecuteProcess</type>
+        </processors>
+        <processors>
+          <id>bbce12f3-015c-1000-0000-000000000000</id>
+          <parentGroupId>bbcc6217-015c-1000-0000-000000000000</parentGroupId>
+          <position>
+            <x>1317.0</x>
+            <y>186.00003051757812</y>
+          </position>
+          <config>
+            <bulletinLevel>WARN</bulletinLevel>
+            <comments></comments>
+            <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+            <descriptors>
+              <entry>
+                <key>Delete Attributes Expression</key>
+                <value>
+                  <name>Delete Attributes Expression</name>
+                </value>
+              </entry>
+              <entry>
+                <key>request_received</key>
+                <value>
+                  <name>request_received</name>
+                </value>
+              </entry>
+            </descriptors>
+            <executionNode>ALL</executionNode>
+            <lossTolerant>false</lossTolerant>
+            <penaltyDuration>30 sec</penaltyDuration>
+            <properties>
+              <entry>
+                <key>Delete Attributes Expression</key>
+              </entry>
+              <entry>
+                <key>request_received</key>
+                <value>${now():toNumber()}</value>
+              </entry>
+            </properties>
+            <runDurationMillis>0</runDurationMillis>
+            <schedulingPeriod>0 sec</schedulingPeriod>
+            <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+            <yieldDuration>1 sec</yieldDuration>
+          </config>
+          <name>UpdateAttribute</name>
+          <relationships>
+            <autoTerminate>true</autoTerminate>
+            <name>success</name>
+          </relationships>
+          <style></style>
+          <type>org.apache.nifi.processors.attributes.UpdateAttribute</type>
+        </processors>
+      </contents>
+      <name>SRHBE_updateIDF</name>
+    </processGroups>
+  </snippet>
+  <timestamp>09/19/2017 15:23:19 UTC</timestamp>
+</template>
