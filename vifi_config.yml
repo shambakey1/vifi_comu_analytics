@@ -1,0 +1,51 @@
+user_conf:  # Key names used in any conf.json file
+  ############ GENERAL PARAMETERS ###############
+  conf_file_name: conf.json  # Name of configuration file that should exist in any user request
+  userid_kye: userid       # Key for User ID
+  total_inputs_key: total_inputs     # Key for all uploaded user input files and folders to this server
+  main_scripts_key: main_scripts     # Key for user scripts that will execute inside docker swarm. Main scripts are also included in the total_inputs
+  result_files_key: result_files     # Key for output files
+  s3_transfer_key: s3_transfer     # Key to define whether to upload output files to S3 bucket or not
+  s3_buc_key: s3_buc       # Key for S3 bucket
+  s3_loc_under_userid_key: s3_loc_under_userid # Key for S3 location under userid folder in specified S3 bucket
+  ser_check_thr_key: ser_check_thr   # Key for user defined time for executing main scripts
+  docker_img_key: docker_img     # Key for Docker image to execute scripts (e.g., python docker image)
+  docker_cmd_eng_key: docker_cmd_eng   # Key for command to run main script(s) insdie docker swarm (e.g., python <script_name>)
+  docker_rep_key: docker_rep     # Key for number of docker tasks. Useful for parallelization.
+  data_dir_container_key: data_dir_container # Key for data location inside each docker task
+
+######### PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES #################
+general_python_script_path: /home/ubuntu/requests
+script_path_in: in
+script_path_out: finished
+script_path_failed: failed
+log_path: log
+req_res_path_per_request: results
+domain: 
+  jpl: jpl
+
+######### DOCKER (SWARM) PARAMETERS ##############
+docker:
+  container_dir: "/home"
+  work_dir: container_dir
+  docker_img: "shambakey1/ocw"
+  docker_cmd_eng: ""
+  docker_rep: "1"
+  data_dir: "/home/ubuntu/data_GPM"  # Result from data management layer
+  data_dir_container: ""
+  climate_dir: "/home/ubuntu/climate"
+  climate_dir_container: "/climate"
+  ttl: 300
+
+############ PROMETHEUS PARAMETERS #################
+Prometheus_parameters:
+  uname: admin         # Prometheus default user name
+  upass: admin         # Prometheus default user password
+  prometheus_url: http://localhost:9090/api/v1/  # Prometheus default API url
+  query_step: 15         # Steps between consecutive queries time series (Default is 15 sec)
+  metrics_names_f:    # Default output file to record metrics names
+  metrics_names_path: ''      # Default path to store @metrics_names_f
+  metrics_values_f:        # Default output file to record metrics values
+  metrics_values_path: ''    # Default path to store @metrics_values_f
+  write_metrics: False        # If set, write metrics values to @metrics_values_path/@metrics_values_f 
+  

@@ -1,5 +1,17 @@
-import time, os, sys, shutil, docker, json, uuid
+'''
+Created on Oct 16, 2016
 
+@author: Mohammed Elshambakey
+@contact: shambakey1@gmail.com
+'''
+
+import time, os, sys, shutil, docker, json, uuid, requests
+from typing import List
+from __builtin__ import str
+
+
+############ GENERAL PARAMETERS ###############
+#TODO: This section of general parameters may be moved to outside configuration files
 # Key names used in any conf.json file
 conf_file_name="conf.json"	# Name of configuration file that should exist in any user request
 userid_kye="userid"				# Key for User ID
@@ -15,28 +27,57 @@ docker_cmd_eng_key="docker_cmd_eng"		# Key for command to run main script(s) ins
 docker_rep_key="docker_rep"			# Key for number of docker tasks. Useful for parallelization.
 data_dir_container_key="data_dir_container"	# Key for data location inside each docker task
 
+############ PROMETHEUS PARAMETERS ###############
+uname="admin"					# Prometheus default user name
+upass="admin"					# Prometheus default user password
+prometheus_url="http://localhost:9090/api/v1/"	# Prometheus default API url
+query_step=15					# Steps between consecutive queries time series (Default is 15 sec)
+metrics_names_f="metrics_names.json"		# Default output file to record metrics names
+metrics_path=""					# Path for results files. Default is current path
+
+######### PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES #################
+domain="jpl"
+script_path_in="/home/ubuntu/requests/"+domain+"/in"
+script_path_out="/home/ubuntu/requests/"+domain+"/finished"
+script_path_failed="/home/ubuntu/requests/"+domain+"/failed"
+log_path="/home/ubuntu/requests/"+domain+"/log"
+general_python_script_path="/home/ubuntu/requests"
+#general_python_script_name="shambakey1_general.py"
+req_res_path_per_request="results"
+
+######### DOCKER (SWARM) PARAMETERS ##############
+container_dir="/home"
+work_dir=container_dir
+docker_img="shambakey1/ocw"
+docker_cmd_eng=""
+docker_rep="1"
+data_dir="/home/ubuntu/data_GPM"	# Result from data management layer
+data_dir_container=""
+climate_dir="/home/ubuntu/climate"
+climate_dir_container="/climate"
+
 ############ START DOCKER CLIENT ###############
 client=docker.from_env()
 
 ############## User Defined Server Control Function ##############
 def check_docker_service_complete(service_id,task_num_in,ttl=300):
-    """Check if specified Docker service has finished currently or within specified time threshold."""
-    
-    ### Checks if each task in task_num has completed
-    while ttl:
+	"""Check if specified Docker service has finished currently or within specified time threshold."""
+	
+	### Checks if each task in task_num has completed
+	while ttl:
 	try:
 		ser=client.services.get(service_id)
 		task_num=task_num_in
 		for t in ser.tasks():
-		    if t["Status"]["State"]=="complete":
-		        task_num-=1
+			if t["Status"]["State"]=="complete":
+				task_num-=1
 		if task_num==0:
-		    return True
+			return True
 	except:
 		pass
-        ttl-=1
-        time.sleep(1)
-    return False
+		ttl-=1
+		time.sleep(1)
+	return False
 
 def load_conf(infile):
 	'''Loads user configuration file. "infile" is in JSON format.'''
@@ -54,22 +95,11 @@ def check_input_files(in_file_root_loc,conf_in_total):
 			return False
 	return True
 
-  
-######### PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES #################
-domain="jpl"
-script_path_in="/home/ubuntu/requests/"+domain+"/in"
-script_path_out="/home/ubuntu/requests/"+domain+"/finished"
-script_path_failed="/home/ubuntu/requests/"+domain+"/failed"
-log_path="/home/ubuntu/requests/"+domain+"/log"
-general_python_script_path="/home/ubuntu/requests"
-#general_python_script_name="shambakey1_general.py"
-req_res_path_per_request="results"
-
 ############ USER PARAMETERS (MAY NOT BE NEEDED ANY MORE AS CONFIGURATION FILE READ FROM USER INPUT) #######################
 main_scripts=[]
 result_files=[]
 s3_buc=""
-s3_transfer=False        # If True, transfer required results to the specified S3 bucket
+s3_transfer=False		# If True, transfer required results to the specified S3 bucket
 ser_check_thr=300  # Threshold time to check if docker service is complete
 #s3_buc="s3://uncc-vifi-bucket"
 
@@ -77,17 +107,6 @@ ser_check_thr=300  # Threshold time to check if docker service is complete
 f_log_path=os.path.join(log_path,"out.log")
 f_log = open(f_log_path, 'a')
 f_log.write("Scheduled by NIFI at "+repr(time.time())+"\n\n")
-
-######### DOCKER (SWARM) PARAMETERS ##############
-container_dir="/home"
-work_dir=container_dir
-docker_img="shambakey1/ocw"
-docker_cmd_eng=""
-docker_rep="1"
-data_dir="/home/ubuntu/data_GPM"	# Result from data management layer
-data_dir_container=""
-climate_dir="/home/ubuntu/climate"
-climate_dir_container="/climate"
 
 ######### LOOP THROUGH REQUESTS AND PROCESS THEM (CURENTLY PROCESSING LOCATION IS NFS SHARED) ##########
 request_in=os.listdir(script_path_in)
@@ -104,7 +123,7 @@ for request in request_in:
 			ser_check_thr=conf_in[ser_check_thr_key]
 	else:
 		f_log.write("Configuration does not exsit for "+request+" at "+repr(time.time())+"\n")
-                continue
+				continue
 
 	# Validate all input files and folders exist before processing. If not all input files and folder exist, move to next request
 	if not check_input_files(os.path.join(script_path_in,request),conf_in[total_inputs_key]):
@@ -126,15 +145,15 @@ for request in request_in:
 		docker_cmd=conf_in[docker_cmd_eng_key]+" "+f
 		############ PRECAUTION: REMOVE DOCKER SERVICE IF ALREADY EXISTS ###########
 		try:
-	                client.services.get(service_name).remove()
-        	except:
-                	pass
+					client.services.get(service_name).remove()
+			except:
+					pass
 
 		############ BUILD THE NEW SERVICE ################
 		os.chmod(os.path.join(script_path_in,request),0777)	# Just a precaution for the following docker tasks
-                script_processed=os.path.join(script_path_in,request)
-                script_finished=os.path.join(script_path_out,request)
-                script_failed=os.path.join(script_path_failed,request)
+				script_processed=os.path.join(script_path_in,request)
+				script_finished=os.path.join(script_path_out,request)
+				script_failed=os.path.join(script_path_failed,request)
 		cmd="docker service create --name "+service_name+" --replicas "+docker_rep+" --restart-condition=on-failure --mount type=bind,source="+os.path.join(script_path_in,request)+",destination="+container_dir+" --mount type=bind,source="+data_dir+",destination="+conf_in[data_dir_container_key]+" --mount type=bind,source="+climate_dir+",destination="+climate_dir_container+" -w "+work_dir+" --env MY_TASK_ID={{.Task.Name}} --env PYTHONPATH="+climate_dir_container+" --env SCRIPTFILE="+f+" "+docker_img+" "+docker_cmd
 		f_log.write(repr(time.time())+":"+cmd+"\n")	# Log the command
 		try:
@@ -150,30 +169,30 @@ for request in request_in:
 			# REMOVE UN-NEEDED FILES
 #			os.remove(os.path.join(script_processed,general_python_script_name))	# This step cannot be done before the "if condition". Otherwise, the file will be removed before docker task finishes
 			f_log.write("FINISHED at "+repr(time.time())+"\n\n")
-                        shutil.move(script_processed,script_finished)
+						shutil.move(script_processed,script_finished)
 			# COPY REQUIRED RESULT FILES FOR FURTHER PROCESSING OR TRANSFER
 #			for root, dirs, files in os.walk(script_finished):
 #				if dirs==req_res_path_per_request:
-#                                        continue
+#										continue
 #				for f_res in files:
 #					if f_res in conf_in[result_files_key]:
 			for f_res in conf_in[result_files_key]:
 			#			shutil.copy(os.path.join(root,f_res),os.path.join(script_finished,req_res_path_per_request))
 				shutil.copy(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request))
 						# JUST FOR THIS SCRIPT, TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
-				if conf_in[s3_transfer_key] and conf_in[s3_buc_key]:      # s3_transfer is True and s3_buc has some value
-				        import boto3
-				        s3 = boto3.resource('s3')
+				if conf_in[s3_transfer_key] and conf_in[s3_buc_key]:	  # s3_transfer is True and s3_buc has some value
+						import boto3
+						s3 = boto3.resource('s3')
 					data = open(os.path.join(script_finished,f_res), 'rb')
 					key_obj=conf_in[userid_kye]+"/"+conf_in[s3_loc_under_userid_key]+"/"+f_res
-					s3.Bucket(conf_in[s3_buc_key]).put_object(Key=key_obj, Body=data)	    # In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
+					s3.Bucket(conf_in[s3_buc_key]).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 		else:
 #			os.remove(os.path.join(script_processed,general_python_script_name))	# This step cannot be done before the "if condition". Otherwise, the file will be removed before docker task finishes
 			shutil.move(script_processed,script_failed)
 			f_log.write("FAILED at "+repr(time.time())+"\n\n")
 		# DELTE DOCKER SERVICE
 		try:
-                        client.services.get(service_name).remove()
-                except:
-                        pass
+						client.services.get(service_name).remove()
+				except:
+						pass
 f_log.close()
