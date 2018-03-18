@@ -1,0 +1,13 @@
+######### GENERAL PARAMETERS (PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES FOR EACH DOMAIN) #################
+general: &general
+  root_script_path: /home/ubuntu/requests
+  script_path_in: in
+  script_path_out: finished
+  script_path_failed: failed
+  log_path: log
+  req_res_path_per_request: results
+
+domains: 
+  JPL: 
+    general: *general
+    name: JPL

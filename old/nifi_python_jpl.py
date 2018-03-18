@@ -65,18 +65,18 @@ def check_docker_service_complete(service_id,task_num_in,ttl=300):
 	
 	### Checks if each task in task_num has completed
 	while ttl:
-	try:
-		ser=client.services.get(service_id)
-		task_num=task_num_in
-		for t in ser.tasks():
-			if t["Status"]["State"]=="complete":
-				task_num-=1
-		if task_num==0:
-			return True
-	except:
-		pass
-		ttl-=1
-		time.sleep(1)
+		try:
+			ser=client.services.get(service_id)
+			task_num=task_num_in
+			for t in ser.tasks():
+				if t["Status"]["State"]=="complete":
+					task_num-=1
+			if task_num==0:
+				return True
+		except:
+			pass
+			ttl-=1
+			time.sleep(1)
 	return False
 
 def load_conf(infile):

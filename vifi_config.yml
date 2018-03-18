@@ -14,29 +14,6 @@ user_conf:  # Key names used in any conf.json file
   docker_rep_key: docker_rep     # Key for number of docker tasks. Useful for parallelization.
   data_dir_container_key: data_dir_container # Key for data location inside each docker task
 
-######### PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES #################
-general_python_script_path: /home/ubuntu/requests
-script_path_in: in
-script_path_out: finished
-script_path_failed: failed
-log_path: log
-req_res_path_per_request: results
-domain: 
-  jpl: jpl
-
-######### DOCKER (SWARM) PARAMETERS ##############
-docker:
-  container_dir: "/home"
-  work_dir: container_dir
-  docker_img: "shambakey1/ocw"
-  docker_cmd_eng: ""
-  docker_rep: "1"
-  data_dir: "/home/ubuntu/data_GPM"  # Result from data management layer
-  data_dir_container: ""
-  climate_dir: "/home/ubuntu/climate"
-  climate_dir_container: "/climate"
-  ttl: 300
-
 ############ PROMETHEUS PARAMETERS #################
 Prometheus_parameters:
   uname: admin         # Prometheus default user name
@@ -49,3 +26,78 @@ Prometheus_parameters:
   metrics_values_path: ''    # Default path to store @metrics_values_f
   write_metrics: False        # If set, write metrics values to @metrics_values_path/@metrics_values_f 
   
+######## GENERAL PARAMETERS (PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES FOR EACH DOMAIN) #################
+domains: 
+  root_script_path: # Root directory that contains separate directory for each domains
+    name: /home/shambakey1/kk/requests
+    mode: 0o777
+    exist_ok: True  # If true, use alrady existing folder if one does
+  script_path_in: # Sub-folder within domain directory to keep incoming requests 
+    name: in
+    mode: 0o777
+    exist_ok: True  # If true, use alrady existing folder if one does
+  script_path_out:  # Sub-folder within domain directory to keep results of successful requests (i.e., to locally store results)
+    name: finished
+    mode: 0o777
+    exist_ok: True  # If true, use alrady existing folder if one does
+  script_path_failed: # Sub-folder within domain directory to keep failed requests
+    name: failed
+    mode: 0o777
+    exist_ok: True  # If true, use alrady existing folder if one does
+  log_path: # Sub-folder within domain directory to keep logs. Useful to check status
+    name: log
+    mode: 0o777
+    exist_ok: True  # If true, use alrady existing folder if one does
+  req_res_path_per_request: # Sub-folder within each request to store results. The folder can be removed after processing
+    name: results
+    mode: 0o777
+    exist_ok: True  # If true, use alrady existing folder if one does
+  sets:   # Each workflow has a sub folder under the @root_script_path
+    JPL:
+      name: jpl
+      mode: 0o777
+      exist_ok: True  # If true, use alrady existing folder if one does
+      data_dir: "/home/ubuntu/data_GPM"  # Result from data management layer
+      docker:         # Docker parameters for specific workflow
+        container_dir: "/home"
+        work_dir: '/home'
+        docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is the first value in the list, this means that the end user can select any image 
+        - 'shambakey1/ocw'
+        #docker_cmd_eng: ""
+        docker_rep: "1"
+        #data_dir_container: ""
+        climate_dir: "/home/ubuntu/climate"
+        climate_dir_container: "/climate"
+        ttl: 300
+      schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
+      keywords: # TODO: May be important for data management and search for related data
+    AST:
+      name: ast
+      mode: 0o777
+      exist_ok: True  # If true, use alrady existing folder if one does
+      data_dir: ""  # Result from data management layer
+      docker:         # Docker parameters for this specific workflow
+        container_dir: "/home"
+        work_dir: '/home'
+        docker_img: ""
+        #docker_cmd_eng: ""
+        docker_rep: "1"
+        #data_dir_container: ""
+        ttl: 300
+      schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
+      keywords: # TODO: May be important for data management and search for related data
+    SHBE:
+      name: shbe
+      mode: 0o777
+      exist_ok: True  # If true, use alrady existing folder if one does
+      data_dir: ""  # Result from data management layer
+      docker:         # Docker parameters for this specific workflow
+        container_dir: "/home"
+        work_dir: '/home'
+        docker_img: ""
+        #docker_cmd_eng: ""
+        docker_rep: "1"
+        #data_dir_container: ""
+        ttl: 300
+      schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
+      keywords: # TODO: May be important for data management and search for related data

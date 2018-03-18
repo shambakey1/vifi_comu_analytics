@@ -7,36 +7,7 @@ Created on Feb 25, 2018
 
 import yaml, time, os, sys, shutil, docker, json, uuid, requests, docker
 from typing import List
-from spyder.widgets.tests import test_findinfiles
-
-############## User Defined Server Control Function ##############
-def check_docker_service_complete(service_id:str,task_num_in:int,ttl:int=service_ttl)->bool:
-	""" Check if specified Docker service has finished currently or within specified time threshold.
-	@param service_id: Service ID
-	@type service_id: str
-	@param task_num: Number of replicas for the input @service_id
-	@type task_num: int
-	@param ttl: Time interval within which @service_id should have finished
-	@type ttl: int
-	@return: True if all tasks (i.e., replicas) of the @service_id are complete. Otherwise, false
-	@rtype: bool      
-	"""
-	
-	### Checks if each task in task_num has completed
-	while ttl:
-		try:
-			ser=client.services.get(service_id)
-			task_num=task_num_in
-			for t in ser.tasks():
-				if t["Status"]["State"]=="complete":
-					task_num-=1
-			if task_num==0:
-				return True
-		except:
-			pass
-		ttl-=1
-		time.sleep(1)
-	return False
+from botocore.vendored.requests.compat import str
 
 def load_conf(infile:str)->dict:
 	''' Loads user configuration file. "infile" is in JSON format
@@ -46,20 +17,19 @@ def load_conf(infile:str)->dict:
 	@rtype: dict
 	'''
 
-	if not infile:
-		print('Error: No user configuration file is specified')
-	elif not os.path.isfile(infile):
-		print('Error: No user configuration file is specified')
-	else:	
-		try:
+	try:
+		if infile and os.path.isfile(infile):
 			with open(infile, 'r') as f:
 				inputs=json.load(f)
 			return inputs
-		except:
-			print('Error occurred when opening user input configuration file: '+sys.exc_info()[0])
+		else:
+			print('Error: No user configuration file is specified')
+	except:
+		print('Error occurred when opening user input configuration file:')
+		print(sys.exc_info())
 
 def check_input_files(in_file_root_loc:str,conf_in_total:List[str])->bool:
-	'''Checks if all user input files and directories exist. It returns true if all exists
+	'''Checks if all user input files and directories exist. Returns true if all exists
 	@param in_file_root_loc: Root path location of the user request folder
 	@type in_file_root_loc: str
 	@param conf_in_total: List of required input files/directories to execute user request
@@ -73,19 +43,16 @@ def check_input_files(in_file_root_loc:str,conf_in_total:List[str])->bool:
 				return False
 		return True
 	except:
-		print('Error when checking user input files and folders: '+sys.exc_info()[0])
-		return False
+		print('Error when checking user input files and folders:')
+		print(sys.exc_info())
 
-def getPromMetricsNames(prom_path:str=conf['Prometheus_parameters']['prometheus_url'],\
-					uname:str=conf['Prometheus_parameters']['uname'],upass:str=conf['Prometheus_parameters']['upass'],\
-					fname:str=conf['Prometheus_parameters']['metrics_names_f'], \
-					fname_path:str=conf['Prometheus_parameters']['metrics_names_path'])->List[str]:
+def getPromMetricsNames(prom_path:str,uname:str,upass:str,fname:str,fname_path:str)->List[str]:
 	''' Retrive Prometheus metrics names and write them to output file if required in JSON structure 
 	@param prom_path: Prometheus API url
 	@type prom_path: str  
-	@param uname: Prometheus username. Default is 'admin'
+	@param uname: Prometheus username
 	@type uname: str
-	@param upass: Prometheus password. Defaul is 'admin'
+	@param upass: Prometheus password
 	@type upass: str
 	@param fname: File path to record metrics names
 	@type fname: str
@@ -122,11 +89,8 @@ def getMetricsNames(metrics_f:str)-> List[str]:
 	with open(metrics_f, 'r') as f:
 		return json.load(f)
 
-def getMetricsValues(m:List[str], start_t:float=None,end_t:float=None, prom_path:str=conf['Prometheus_parameters']['prometheus_url'],\
-					step:int=conf['Prometheus_parameters']['query_step'],\
-					uname:str=conf['Prometheus_parameters']['uname'],upass:str=conf['Prometheus_parameters']['upass'],\
-					write_to_file:bool=conf['Prometheus_parameters']['write_metrics'], fname:str=conf['Prometheus_parameters']['metrics_values_f'], \
-					fname_path:str=conf['Prometheus_parameters']['metrics_values_path'])->dict:
+def getMetricsValues(m:List[str], start_t:float,end_t:float,prom_path:str,step:int,uname:str,upass:str,\
+					write_to_file:bool,fname:str,fname_path:str)->dict:
 	''' Get specified metric values for specified duration if start and end times of duration are specified
 	If either start or end times are not specified, then query is done only at the time instance that is specified by either of them.
 	@param m: Metric name
@@ -185,110 +149,256 @@ def getMetricsValues(m:List[str], start_t:float=None,end_t:float=None, prom_path
 			
 	return res_values # Return metrics names
 
-def vifi_run():
-	''' VIFI request analysis and processing procedure '''
-
-	### LOAD VIFI CONFIGURATION FILE ###
-	with open('vifi_config.yml','r') as f:
-		conf=yaml.load(f)
-		
-	service_ttl=conf['docker']['ttl'] # Default ttl for each (Docker) service
+def loadVIFIConf(conf_f:str)->dict:
+	''' Load VIFI configuration and make any necessary initialization for (sub)workflows
+	@param conf_f: VIFI configuration file name (in YAML)
+	@type conf_f: str 
+	'''
 	
-	### START DOCKER CLIENT ###
-	client=docker.from_env()
-	
-	######### LOOP THROUGH REQUESTS AND PROCESS THEM (CURENTLY PROCESSING LOCATION IS NFS SHARED) ##########
-	request_in=os.listdir(script_path_in)
-	for request in request_in:
-	
-		# Load configuration file if exists in current request and override server settings. Otherwise, move to the next request
-		if os.path.exists(os.path.join(script_path_in,request,conf_file_name)):
-			conf_in=load_conf(os.path.join(script_path_in,request,conf_file_name))
-			if conf_in[docker_rep_key]:
-				docker_rep=conf_in[docker_rep_key]
-			if conf_in[docker_img_key]:
-				docker_img=conf_in[docker_img_key]
-			if conf_in[ser_check_thr_key]:
-				ser_check_thr=conf_in[ser_check_thr_key]
+	try:
+		if os.path.isfile(conf_f):	# Check the existence of the general VIFI configuration file
+			with open(conf_f,'r') as f:
+				conf=yaml.load(f)
+			
+			# Info for root request directory
+			root_script_path=conf['domains']['root_script_path']['name']	# Root directory for different domains requests
+			root_script_path_mode=conf['domains']['root_script_path']['mode']	# Mode of requests root directory
+			root_script_path_exist=conf['domains']['root_script_path']['exist_ok']	# If true, use already existing folder if one exists
+			#FIXME: the following instruction should be used with the proper 'mode' configuration
+			#os.makedirs(root_script_path,mode=root_script_path_mode,exist_ok=root_script_path_exist)	# Create requests root directory if not exists
+			os.makedirs(root_script_path,exist_ok=root_script_path_exist)	# Create requests root directory if not exists
+			
+			# Default info for request structure within each domain 
+			request_path_in=conf['domains']['script_path_in']['name']	# Path to receive requests within each domain
+			request_path_in_mode=conf['domains']['script_path_in']['mode']	# Mode for received requests folder
+			request_path_in_exist=conf['domains']['script_path_in']['exist_ok']	# If true, use already existing folder if one exists
+			
+			request_path_out=conf['domains']['script_path_out']['name']	# Path to output results within each domain
+			request_path_out_mode=conf['domains']['script_path_out']['mode']	# Mode for output results folder
+			request_path_out_exist=conf['domains']['script_path_out']['exist_ok']	# If true, use already existing folder if one exists
+			
+			request_path_failed=conf['domains']['script_path_failed']['name']	# Path to failed results within each domain
+			request_path_failed_mode=conf['domains']['script_path_failed']['mode']	# Mode for failed results folder
+			request_path_failed_exist=conf['domains']['script_path_failed']['exist_ok']	# If true, use already existing folder if one exists
+			
+			log_path=conf['domains']['log_path']['name']	# Path to logs within each domain
+			log_path_mode=conf['domains']['log_path']['mode']	# Mode for logs folder
+			log_path_exist=conf['domains']['log_path']['exist_ok']	# If true, use already existing folder if one exists
+			
+			req_res_path_per_request=conf['domains']['req_res_path_per_request']['name']	# Path to intermediate results folder within each domain
+			req_res_path_per_request_mode=conf['domains']['req_res_path_per_request']['mode']	# Mode for logs folder
+			req_res_path_per_request_exist=conf['domains']['req_res_path_per_request']['exist_ok']	# If true, use already existing folder if one exists
+			
+			for d in conf['domains']['sets']:	# Create a sub-directory for each domain under the requests root directory
+				#FIXME: the following commented instruction should be used whith the proper 'mode' configuration
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name']),mode=conf['domains']['sets'][d]['mode'],exist_ok=conf['domains']['sets'][d]['exist_ok'])
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_in),mode=request_path_in_mode,exist_ok=request_path_in_exist)
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_out),mode=request_path_out_mode,exist_ok=request_path_out_exist)
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_failed),mode=request_path_failed_mode,exist_ok=request_path_failed_exist)
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],log_path),mode=log_path_mode,exist_ok=log_path_exist)
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],req_res_path_per_request),mode=req_res_path_per_request_mode,exist_ok=req_res_path_per_request_exist)
+				os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name']),exist_ok=conf['domains']['sets'][d]['exist_ok'])
+				os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_in),exist_ok=request_path_in_exist)
+				os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_out),exist_ok=request_path_out_exist)
+				os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_failed),exist_ok=request_path_failed_exist)
+				os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],log_path),exist_ok=log_path_exist)
+				os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],req_res_path_per_request),exist_ok=req_res_path_per_request_exist)
+			return conf	
 		else:
-			f_log.write("Configuration does not exsit for "+request+" at "+repr(time.time())+"\n")
-	                continue
+				print('Error: could not find VIFI general configuration file') 
+	except:
+		print('Error occurred during loading VIFI configuration file:')
+		print(sys.exc_info())
+		
+def check_docker_service_complete(client,service_id:str,task_num_in:int,ttl:int=300)->bool:
+	''' Check if specified Docker service has finished currently or within specified time threshold
+	@param client: Client connection to Docker Engine
+	@type client: client connection
+	@param service_id: Required Service ID whose status is to be checked
+	@type service_id: str
+	@param task_num: Number of tasks (i.e., replicas) within the service
+	@type task_num: int
+	@param ttl: Time threshold after which, the service is considered NOT complete
+	@type ttl: int  
+	@return: True if all tasks of required service are complete. Otherwise, false
+	@rtype: bool    
+	'''
 	
-		# Validate all input files and folders exist before processing. If not all input files and folder exist, move to next request
-		if not check_input_files(os.path.join(script_path_in,request),conf_in[total_inputs_key]):
-			f_log.write("Some or all inputs files (folders) are missing for "+request+" at "+repr(time.time())+"\n\n")
-			continue
+	### Checks if each task in task_num has completed
+	while ttl:
+		try:
+			ser=client.services.get(service_id)
+			task_num=task_num_in
+			for t in ser.tasks():
+				if t["Status"]["State"]=="complete":
+					task_num-=1
+			if task_num==0:
+				return True
+		except:
+			ttl-=1
+			time.sleep(1)
+	return False
+		
+def vifi_run(set:str,conf:dict)->None:
+	''' VIFI request analysis and processing procedure for a specific set
+	@param set: A specific set (i.e., (sub)set) to run (i.e., receive and process requests)
+	@type set: str
+	@param conf_in: Configuration
+	@type conf_in: dict  
+	'''
 	
-		# Now, request can be processed
-		# Create 'results' folder (if not already exists) to keep output files. Otherwise, create a 'results' folder with new ID
-		if os.path.exists(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request)):
-			req_res_path_per_request=req_res_path_per_request+"_"+str(uuid.uuid1())
-		os.mkdir(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request))	# To keep only required result files to be further processed or transfered.
-	
-		script_in=os.listdir(os.path.join(script_path_in,request))
-	#	shutil.copy(os.path.join(general_python_script_path,general_python_script_name),os.path.join(script_path_in,request))
-		for f in conf_in[main_scripts_key]:
-			service_name=os.path.splitext(os.path.split(f)[1])[0]
-	#		docker_cmd_script=general_python_script_name
-	#		docker_cmd="python "+docker_cmd_script	#TODO: the general 'shambakey1.py' should be removed somehow
-			docker_cmd=conf_in[docker_cmd_eng_key]+" "+f
-			############ PRECAUTION: REMOVE DOCKER SERVICE IF ALREADY EXISTS ###########
-			try:
-		                client.services.get(service_name).remove()
-	        	except:
-	                	pass
-	
-			############ BUILD THE NEW SERVICE ################
-			os.chmod(os.path.join(script_path_in,request),0777)	# Just a precaution for the following docker tasks
-			script_processed=os.path.join(script_path_in,request)
-	                script_finished=os.path.join(script_path_out,request)
-	                script_failed=os.path.join(script_path_failed,request)
-			cmd="docker service create --name "+service_name+" --replicas "+docker_rep+" --restart-condition=on-failure --mount type=bind,source="+os.path.join(script_path_in,request)+",destination="+container_dir+" --mount type=bind,source="+data_dir+",destination="+conf_in[data_dir_container_key]+" --mount type=bind,source="+climate_dir+",destination="+climate_dir_container+" -w "+work_dir+" --env MY_TASK_ID={{.Task.Name}} --env PYTHONPATH="+climate_dir_container+" --env SCRIPTFILE="+f+" "+docker_img+" "+docker_cmd
-			f_log.write(repr(time.time())+":"+cmd+"\n")	# Log the command
-			f_log.flush()
-			try:
-				os.system(cmd)
-			except:
-				f_log.write("Unexpected error:"+ sys.exc_info()[0]+"\n")
-	
-			########### CLEAN ONLY AFTER MAKING SURE OUTPUT IS SENT TO USER ##############
-	#		script_processed=os.path.join(script_path_in,request)
-	#		script_finished=os.path.join(script_path_out,request)
-	#		script_failed=os.path.join(script_path_failed,request)
-			if check_docker_service_complete(service_name,int(docker_rep),int(ser_check_thr)):
-				# REMOVE UN-NEEDED FILES
-	#			os.remove(os.path.join(script_processed,general_python_script_name))	# This step cannot be done before the "if condition". Otherwise, the file will be removed before docker task finishes
-	#			shutil.move(script_processed,script_finished)
-				f_log.write("FINISHED at "+repr(time.time())+"\n\n")
-				f_log.flush()
-				shutil.move(script_processed,script_finished)
-				# COPY REQUIRED RESULT FILES FOR FURTHER PROCESSING OR TRANSFER
-	#			for root, dirs, files in os.walk(script_finished):
-	#				if dirs==req_res_path_per_request:
-	#                                        continue
-	#				for f_res in files:
-	#					if f_res in conf_in[result_files_key]:
-				for f_res in conf_in[result_files_key]:
-				#			shutil.copy(os.path.join(root,f_res),os.path.join(script_finished,req_res_path_per_request))
-					shutil.copy(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request))
-							# JUST FOR THIS SCRIPT, TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
-					if conf_in[s3_transfer_key] and conf_in[s3_buc_key]:      # s3_transfer is True and s3_buc has some value
-					        import boto3
-					        s3 = boto3.resource('s3')
-						data = open(os.path.join(script_finished,f_res), 'rb')
-						key_obj=conf_in[userid_kye]+"/"+conf_in[s3_loc_under_userid_key]+"/"+f_res
-						s3.Bucket(conf_in[s3_buc_key]).put_object(Key=key_obj, Body=data)	    # In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
+	try:
+		if set in conf['domains']['sets']: # Check if required set exists
+			### INITIALIZE USER PARAMETERS (APPLICABLE FOR ANY USER) ###
+			conf_file_name=conf['user_conf']['conf_file_name']
+
+			### INITIALIZE REQUIRED PATH VARIABLES FOR SPECIFIED SET ###
+			script_path_in=os.path.join(conf['domains']['root_script_path'],conf['domains']['sets'][set]['name'],\
+								conf['domains']['script_path_in']['name'])
+			script_path_out=os.path.join(conf['domains']['root_script_path'],conf['domains']['sets'][set]['name'],\
+								conf['domains']['script_path_out']['name'])
+			script_path_failed=os.path.join(conf['domains']['root_script_path'],conf['domains']['sets'][set]['name'],\
+								conf['domains']['script_path_failed']['name'])
+			log_path=os.path.join(conf['domains']['root_script_path'],conf['domains']['sets'][set]['name'],\
+								conf['domains']['log_path']['name'])
+			req_res_path_per_request=os.path.join(conf['domains']['root_script_path'],conf['domains']['sets'][set]['name'],\
+								conf['domains']['req_res_path_per_request']['name'])
+			data_dir=conf['domains']['sets'][set]['data_dir']
+			
+			### LOGGING PARAMETERS ###
+			f_log_path=os.path.join(log_path,"out.log")
+			f_log = open(f_log_path, 'a')
+			f_log.write("Scheduled by VIFI Orchestrator at "+str(time.time())+"\n")
+
+			### IF DOCKER IS USED FOR THIS SET, THEN INITIALIZE DEFAULT DOCKER PARAMETERS ###
+			### SOME DOCKER PARAMETERS CAN BE OVERRIDEN BY END USER IF ALLOWED ###
+			if 'docker' in conf['domains']['sets'][set] and conf['domains']['sets'][set]['docker']:
+				container_dir=conf['domains']['sets'][set]['docker']['container_dir']
+				work_dir=conf['domains']['sets'][set]['docker']['work_dir']
+				docker_img_set=conf['domains']['sets'][set]['docker']['docker_img']	# Set of allowed docker images
+				#docker_cmd_eng=conf['domains']['sets'][set]['docker']['docker_cmd_eng']
+				docker_rep=conf['domains']['sets'][set]['docker']['docker_rep']
+				#data_dir_container=conf['domains']['sets'][set]['docker']['data_dir_container']				
+				ser_check_thr=conf['domains']['sets'][set]['docker']['ttl'] # Default ttl for each (Docker) service
+				client=docker.from_env()
 			else:
-	#			os.remove(os.path.join(script_processed,general_python_script_name))	# This step cannot be done before the "if condition". Otherwise, the file will be removed before docker task finishes
-				shutil.move(script_processed,script_failed)
-				f_log.write("FAILED at "+repr(time.time())+"\n\n")
-				f_log.flush()
-			# DELTE DOCKER SERVICE
-			try:
-	                        client.services.get(service_name).remove()
-	                except:
-	                        pass
-	f_log.close()
+				print('Error: No containerization technique and/or stand alone service is specified to run (sub)workflow '+set)
+				return
+				
+			### LOOP THROUGH REQUESTS AND PROCESS THEM (CURENTLY PROCESSING LOCATION IS NFS SHARED) ###
+			request_in=os.listdir(script_path_in)
+			for request in request_in:
+			
+				# Load configuration file if exists in current request and override server settings. Otherwise, move to the next request
+				if os.path.exists(os.path.join(script_path_in,request,conf_file_name)):
+					conf_in=load_conf(os.path.join(script_path_in,request,conf_file_name))
+					if conf_in['docker_rep']:
+						docker_rep=conf_in['docker_rep']
+					if conf_in['docker_img']:
+						docker_img=conf_in['docker_img']
+					else:
+						f_log.write('Error: No Docker image specified by end-user. Please, select one from '+str(docker_img_set))
+						continue
+					if docker_img_set and ('any' in docker_img_set or docker_img in docker_img_set):	# Check if end-user specified docker image exist in allowed images by institution
+						pass
+					else:
+						f_log.write('Error: Docker image specified by end-user cannot be used\n')
+						continue
+					if conf_in['ser_check_thr']:
+						ser_check_thr=conf_in['ser_check_thr']
+				else:
+					f_log.write("Error: Configuration does not exsit for "+request+" at "+str(time.time())+"\n")
+					continue
+			
+				# Validate all input files and folders exist before processing. If not all input files and folder exist, move to next request
+				if not check_input_files(os.path.join(script_path_in,request),conf_in['total_inputs']):
+					f_log.write("Error: Some or all inputs files (folders) are missing for "+request+" at "+str(time.time())+"\n")
+					continue
+			
+				# Now, request can be processed
+				# Create 'results' folder (if not already exists) to keep output files. Otherwise, create a 'results' folder with new ID
+				if os.path.exists(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request)):
+					req_res_path_per_request=req_res_path_per_request+"_"+str(uuid.uuid1())
+				os.mkdir(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request))	# To keep only required result files to be further processed or transfered.
+			
+				for f in conf_in['main_scripts']:
+					service_name=os.path.splitext(os.path.split(f)[1])[0]
+					docker_cmd=conf_in['docker_cmd_eng']+" "+f
+					
+					############ PRECAUTION: REMOVE DOCKER SERVICE IF ALREADY EXISTS ###########
+					try:
+						client.services.get(service_name).remove()
+					except:
+						pass
+			
+					############ BUILD THE NEW SERVICE ################
+					#os.chmod(os.path.join(script_path_in,request),0777)	# Just a precaution for the following docker tasks
+					script_processed=os.path.join(script_path_in,request)
+					script_finished=os.path.join(script_path_out,request)
+					script_failed=os.path.join(script_path_failed,request)
+					#FIXME: docker service should be created by python docker module
+					cmd="docker service create --name "+service_name+" --replicas "+docker_rep+" --restart-condition=on-failure --mount type=bind,source="+os.path.join(script_path_in,request)+",destination="+container_dir+" --mount type=bind,source="+data_dir+",destination="+conf_in['data_dir_container']+" --mount type=bind,source="+climate_dir+",destination="+climate_dir_container+" -w "+work_dir+" --env MY_TASK_ID={{.Task.Name}} --env PYTHONPATH="+climate_dir_container+" --env SCRIPTFILE="+f+" "+docker_img+" "+docker_cmd
+					f_log.write(repr(time.time())+":"+cmd+"\n")	# Log the command
+					try:
+						os.system(cmd)
+					except:
+						f_log.write("Error occurred while launching service "+service_name+": "+ str(sys.exc_info())+"\n")
+			
+					########### CLEAN ONLY AFTER MAKING SURE OUTPUT IS SENT TO USER ##############
+					if check_docker_service_complete(client,service_name,int(docker_rep),int(ser_check_thr)):
+						# MOVE FINISHED SERVICE TO SUCCESSFUL REQUESTS PATH
+						f_log.write("FINISHED at "+repr(time.time())+"\n\n")
+						shutil.move(script_processed,script_finished)
+						# COPY REQUIRED RESULT FILES FOR FURTHER PROCESSING OR TRANSFER
+						for f_res in conf_in['result_files']:
+							shutil.copy(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request))
+							# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
+							if conf_in['s3_transfer'] and conf_in['s3_buc']:	  # s3_transfer is True and s3_buc has some value
+								import boto3
+								s3 = boto3.resource('s3')
+								data = open(os.path.join(script_finished,f_res), 'rb')
+								key_obj=conf_in['userid']+"/"+conf_in['s3_loc_under_userid']+"/"+f_res
+								s3.Bucket(conf_in['s3_buc']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
+					else:
+						shutil.move(script_processed,script_failed)
+						f_log.write("FAILED at "+repr(time.time())+"\n")
+					# DELTE DOCKER SERVICE
+					try:
+						client.services.get(service_name).remove()
+					except:
+						pass
+		else:
+			print('Error: Specified set '+set+' does not exist')
+	except:
+		print('Error occurred during running VIFI for set: '+set)
+		print(sys.exc_info())
+	finally:
+		f_log.close()
+		
+def vifi_run_f(set:str,conf_f:str)->None:
+	''' VIFI request analysis and processing procedure for a specific set
+	@param set: A specific set to run (i.e., receive and process requests)
+	@type set: str
+	@param conf_f: Input configuration file path (currently in YAML). conf_f preceeds @conf_in
+	@type conf_f: str  
+	@param conf_in: Configuration
+	@type conf_in: dict  
+	'''
+	
+	try:
+		if os.path.isfile(conf_f):	# Check the existence of the configuration file
+			with open(conf_f,'r') as f:
+				conf=yaml.load(f)
+
+			vifi_run(set, conf)
+		else:
+			print('Error: Could not find required configuration file')
+	except:
+		print('Error occurred during running VIFI for set: '+set)
+		print(sys.exc_info())
 	
 if __name__ == '__main__':
-	pass
+	conf_f='vifi_config.yml'		# VIFI configuration file
+	conf=loadVIFIConf(conf_f)		# Initialize VIIF configuration (i.e., directory structure for different sets (i.e., (sub)workflows))
+	vifi_run(conf=conf,set='JPL')		# Run VIFI analysis (to receive and process requests) for the specified set
+	
