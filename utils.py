@@ -7,7 +7,7 @@ Created on Feb 25, 2018
 
 import yaml, time, os, sys, shutil, docker, json, uuid, requests, docker
 from typing import List
-from botocore.vendored.requests.compat import str
+#from botocore.vendored.requests.compat import str
 
 def load_conf(infile:str)->dict:
 	''' Loads user configuration file. "infile" is in JSON format
@@ -246,6 +246,8 @@ def vifi_run(set:str,conf:dict)->None:
 	@param conf_in: Configuration
 	@type conf_in: dict  
 	'''
+
+	f_log=''	# Variable of log file
 	
 	try:
 		if set in conf['domains']['sets']: # Check if required set exists
@@ -253,16 +255,15 @@ def vifi_run(set:str,conf:dict)->None:
 			conf_file_name=conf['user_conf']['conf_file_name']
 
 			### INITIALIZE REQUIRED PATH VARIABLES FOR SPECIFIED SET ###
-			script_path_in=os.path.join(conf['domains']['root_script_path'],conf['domains']['sets'][set]['name'],\
+			script_path_in=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
 								conf['domains']['script_path_in']['name'])
-			script_path_out=os.path.join(conf['domains']['root_script_path'],conf['domains']['sets'][set]['name'],\
+			script_path_out=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
 								conf['domains']['script_path_out']['name'])
-			script_path_failed=os.path.join(conf['domains']['root_script_path'],conf['domains']['sets'][set]['name'],\
+			script_path_failed=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
 								conf['domains']['script_path_failed']['name'])
-			log_path=os.path.join(conf['domains']['root_script_path'],conf['domains']['sets'][set]['name'],\
+			log_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
 								conf['domains']['log_path']['name'])
-			req_res_path_per_request=os.path.join(conf['domains']['root_script_path'],conf['domains']['sets'][set]['name'],\
-								conf['domains']['req_res_path_per_request']['name'])
+			req_res_path_per_request=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],conf['domains']['req_res_path_per_request']['name'])
 			data_dir=conf['domains']['sets'][set]['data_dir']
 			
 			### LOGGING PARAMETERS ###
@@ -373,7 +374,8 @@ def vifi_run(set:str,conf:dict)->None:
 		print('Error occurred during running VIFI for set: '+set)
 		print(sys.exc_info())
 	finally:
-		f_log.close()
+		if f_log:
+			f_log.close()
 		
 def vifi_run_f(set:str,conf_f:str)->None:
 	''' VIFI request analysis and processing procedure for a specific set
@@ -400,5 +402,5 @@ def vifi_run_f(set:str,conf_f:str)->None:
 if __name__ == '__main__':
 	conf_f='vifi_config.yml'		# VIFI configuration file
 	conf=loadVIFIConf(conf_f)		# Initialize VIIF configuration (i.e., directory structure for different sets (i.e., (sub)workflows))
-	vifi_run(conf=conf,set='JPL')		# Run VIFI analysis (to receive and process requests) for the specified set
+	vifi_run(conf=conf,set='SHBE')		# Run VIFI analysis (to receive and process requests) for the specified set
 	

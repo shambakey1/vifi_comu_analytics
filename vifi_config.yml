@@ -29,7 +29,7 @@ Prometheus_parameters:
 ######## GENERAL PARAMETERS (PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES FOR EACH DOMAIN) #################
 domains: 
   root_script_path: # Root directory that contains separate directory for each domains
-    name: /home/shambakey1/kk/requests
+    name: /home/ubuntu/requests
     mode: 0o777
     exist_ok: True  # If true, use alrady existing folder if one does
   script_path_in: # Sub-folder within domain directory to keep incoming requests 
@@ -90,7 +90,7 @@ domains:
       name: shbe
       mode: 0o777
       exist_ok: True  # If true, use alrady existing folder if one does
-      data_dir: ""  # Result from data management layer
+      data_dir: "/home/ubuntu/data_CMU"  # Result from data management layer
       docker:         # Docker parameters for this specific workflow
         container_dir: "/home"
         work_dir: '/home'
