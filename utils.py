@@ -293,19 +293,14 @@ def vifi_run(set:str,conf:dict)->None:
 				# Load configuration file if exists in current request and override server settings. Otherwise, move to the next request
 				if os.path.exists(os.path.join(script_path_in,request,conf_file_name)):
 					conf_in=load_conf(os.path.join(script_path_in,request,conf_file_name))
-					if conf_in['docker_rep']:
+					if str(docker_rep).lower()=='any' or docker_rep>=conf_in['docker_rep']: # User overrides default number of containers if the default number is 'any' or greater than requested number of containers by end-user
 						docker_rep=conf_in['docker_rep']
-					if conf_in['docker_img']:
+					if 'any' in [x.lower() for x in docker_img_set] or conf_in['docker_img'] in docker_img_set:	# Use end-user specified container image if VIFI node allowes any container image, or user selected one of the allowed images by VIFI node
 						docker_img=conf_in['docker_img']
 					else:
-						f_log.write('Error: No Docker image specified by end-user. Please, select one from '+str(docker_img_set))
+						f_log.write('Error: Wrong container image specified by end-user. Please, select one from '+str(docker_img_set))
 						continue
-					if docker_img_set and ('any' in docker_img_set or docker_img in docker_img_set):	# Check if end-user specified docker image exist in allowed images by institution
-						pass
-					else:
-						f_log.write('Error: Docker image specified by end-user cannot be used\n')
-						continue
-					if conf_in['ser_check_thr']:
+					if str(ser_check_thr).lower()=='any' or conf_in['ser_check_thr']<ser_check_thr:
 						ser_check_thr=conf_in['ser_check_thr']
 				else:
 					f_log.write("Error: Configuration does not exsit for "+request+" at "+str(time.time())+"\n")

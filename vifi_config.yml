@@ -57,25 +57,43 @@ domains:
       name: jpl
       mode: 0o777
       exist_ok: True  # If true, use alrady existing folder if one does
-      data_dir: "/home/ubuntu/data_GPM"  # Result from data management layer
+      data_dir:   # Result from data management layer
+      - "/home/ubuntu/data_GPM"
+      docker:         # Docker parameters for specific workflow
+        container_dir: "/home"
+        work_dir: '/home'
+        docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is in the list, this means that the end user can select any image 
+        - 'shambakey1/ocw'
+        #docker_cmd_eng: ""
+        docker_rep: "1" # User can change number of containers if @docker_rep is 'any' or greater than number of containers required by end-user
+        #data_dir_container: ""
+        climate_dir: "/home/ubuntu/climate"
+        climate_dir_container: "/climate"
+        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
+      schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
+      keywords: # TODO: May be important for data management and search for related data
+    JPL_cordex_sg1:
+      name: jpl_cordex_sg1
+      mode: 0o777
+      exist_ok: True  # If true, use alrady existing folder if one does
+      data_dir: # Result from data management layer
+      - "/home/ubuntu/NAM-44"
+      - "/home/ubuntu/obs4mips"
       docker:         # Docker parameters for specific workflow
         container_dir: "/home"
         work_dir: '/home'
         docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is the first value in the list, this means that the end user can select any image 
-        - 'shambakey1/ocw'
-        #docker_cmd_eng: ""
+        - 'shambakey1/ocw_cordex'
         docker_rep: "1"
-        #data_dir_container: ""
-        climate_dir: "/home/ubuntu/climate"
-        climate_dir_container: "/climate"
-        ttl: 300
+        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
       schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
       keywords: # TODO: May be important for data management and search for related data
     AST:
       name: ast
       mode: 0o777
       exist_ok: True  # If true, use alrady existing folder if one does
-      data_dir: ""  # Result from data management layer
+      data_dir: # Result from data management layer
+      - ""
       docker:         # Docker parameters for this specific workflow
         container_dir: "/home"
         work_dir: '/home'
@@ -83,14 +101,15 @@ domains:
         #docker_cmd_eng: ""
         docker_rep: "1"
         #data_dir_container: ""
-        ttl: 300
+        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
       schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
       keywords: # TODO: May be important for data management and search for related data
     SHBE:
       name: shbe
       mode: 0o777
       exist_ok: True  # If true, use alrady existing folder if one does
-      data_dir: "/home/ubuntu/data_CMU"  # Result from data management layer
+      data_dir: # Result from data management layer
+      - "/home/ubuntu/data_CMU"
       docker:         # Docker parameters for this specific workflow
         container_dir: "/home"
         work_dir: '/home'
@@ -98,6 +117,6 @@ domains:
         #docker_cmd_eng: ""
         docker_rep: "1"
         #data_dir_container: ""
-        ttl: 300
+        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
       schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
       keywords: # TODO: May be important for data management and search for related data
