@@ -7,6 +7,8 @@ Created on Feb 25, 2018
 
 import yaml, time, os, sys, shutil, docker, json, uuid, requests, docker
 from typing import List
+from builtins import str, int
+from _ast import Str
 #from botocore.vendored.requests.compat import str
 
 def load_conf(infile:str)->dict:
@@ -208,7 +210,7 @@ def loadVIFIConf(conf_f:str)->dict:
 				print('Error: could not find VIFI general configuration file') 
 	except:
 		print('Error occurred during loading VIFI configuration file:')
-		print(sys.exc_info())
+		print(sys.exc_info())	
 		
 def check_docker_service_complete(client,service_id:str,task_num_in:int,ttl:int=300)->bool:
 	''' Check if specified Docker service has finished currently or within specified time threshold
@@ -238,6 +240,82 @@ def check_docker_service_complete(client,service_id:str,task_num_in:int,ttl:int=
 			ttl-=1
 			time.sleep(1)
 	return False
+
+def setServiceImage(docker_img_set:dict,user_img:str)-> str:
+	''' Retrive the correct service image to use according to VIFI Node specifications and user requirements
+	@param docker_img_set: Set of allowed images to use as specified by VIFI node
+	@type docker_img_set: dict
+	@param user_img: Required service image to use as specified by user
+	@type user_img: str
+	@return: user image or none if user image is not allowed by VIFI Node
+	@rtype: str      
+	'''
+
+	docker_img=''
+	#FIXME: Retrieval of (docker) image may change according to registry. Current implementation assumes all (docker) images are hosted on docker hub
+	if 'any' in [x.lower() for x in docker_img_set.keys()] or user_img in docker_img_set.keys():	# Use end-user specified container image if VIFI node allows any container image, or user selected one of the allowed images by VIFI node
+		docker_img=user_img
+		
+	return docker_img
+
+def setServiceNumber(docker_rep:str,user_rep:int)->int:
+	''' Specify number of deployed tasks for user's request according to VIFI Node specifications and user's requirements
+	@param docker_rep: Number of service tasks as specified by VIFI Node. If 'any', then VIFI Node allows any number of service tasks
+	@type docker_rep: str
+	@param  user_rep: Number of service tasks as required by user
+	@type user_rep: int
+	@return: Number of service tasks
+	@rtype: int  
+	'''
+	def_rep=1	# Default number of service tasks
+	if str(docker_rep).lower()=='any':	# VIFI Node allows any number of service tasks
+		if user_rep:
+			return user_rep
+		else:
+			return def_rep	# Default number of service tasks if user does not specify specific number of tasks
+	else:
+		if user_rep and user_rep<int(docker_rep):
+			return user_rep	# Return required number of service tasks as it is allowed by VIFI Node
+		else:
+			return int(docker_rep)	# User required number of tasks exceeds allowed number by VIFI Node. Thus, reduce number of tasks to that allowed by VIFI Node
+
+def setServiceThreshold(ser_check_thr:str,user_thr:int)->int:
+	''' Specify time threshold (or ttl) to check completeness of user's required service(s)
+	@param ser_check_thr: Service check threshold (i.e., ttl) as specified by VIFI Node. If 'any', then VIFI Node allows infinite time to check service completeness
+	@type ser_check_thr: str
+	@param user_thr: Service check threshold (i.e., ttl) as required by user
+	@type user_thr: int
+	@return: Service check threshold (ttl)
+	@rtype: int    
+	'''
+	
+	def_ttl=300	# Default ttl
+	if str(ser_check_thr).lower()=='any':
+		if user_thr:
+			return user_thr
+		else:
+			return def_ttl
+	else:
+		if user_thr and user_thr<int(ser_check_thr):
+			return user_thr	# User specified threshold does not exceed maximum allowed threshold by VIFI Node
+		else:
+			return int(ser_check_thr)	# Return maximum allowed threshold by VIFI Node as user requires more than what is allowed
+		
+def createUserService(client,service_name:str,docker_rep:int,script_path_in:str,request:str,container_dir:str,\
+					data_dir:dict,user_data_dir:dict,work_dir:str,f:str,docker_img:str,docker_cmd:str):
+	'''
+	'''
+	
+	cmd="docker service create --name "+service_name+" --replicas "+docker_rep+" --restart-condition=on-failure \
+	--mount type=bind,source="+os.path.join(script_path_in,request)+",destination="+container_dir+" --mount type=\
+	bind,source="+data_dir+",destination="+conf_in['data_dir_container']+" --mount type=bind,source="+climate_dir+\
+	",destination="+climate_dir_container+" -w "+work_dir+" --env MY_TASK_ID={{.Task.Name}} --env PYTHONPATH="+\
+	climate_dir_container+" --env SCRIPTFILE="+f+" "+docker_img+" "+docker_cmd
+	
+	client.services.create(name=service_name,mode={'Replicated':{'Replicas':docker_rep}},restart_policy=\
+						{'condition':'on-failure'})
+	
+	
 		
 def vifi_run(set:str,conf:dict)->None:
 	''' VIFI request analysis and processing procedure for a specific set
@@ -277,9 +355,7 @@ def vifi_run(set:str,conf:dict)->None:
 				container_dir=conf['domains']['sets'][set]['docker']['container_dir']
 				work_dir=conf['domains']['sets'][set]['docker']['work_dir']
 				docker_img_set=conf['domains']['sets'][set]['docker']['docker_img']	# Set of allowed docker images
-				#docker_cmd_eng=conf['domains']['sets'][set]['docker']['docker_cmd_eng']
 				docker_rep=conf['domains']['sets'][set]['docker']['docker_rep']
-				#data_dir_container=conf['domains']['sets'][set]['docker']['data_dir_container']				
 				ser_check_thr=conf['domains']['sets'][set]['docker']['ttl'] # Default ttl for each (Docker) service
 				client=docker.from_env()
 			else:
@@ -293,15 +369,16 @@ def vifi_run(set:str,conf:dict)->None:
 				# Load configuration file if exists in current request and override server settings. Otherwise, move to the next request
 				if os.path.exists(os.path.join(script_path_in,request,conf_file_name)):
 					conf_in=load_conf(os.path.join(script_path_in,request,conf_file_name))
-					if str(docker_rep).lower()=='any' or docker_rep>=conf_in['docker_rep']: # User overrides default number of containers if the default number is 'any' or greater than requested number of containers by end-user
-						docker_rep=conf_in['docker_rep']
-					if 'any' in [x.lower() for x in docker_img_set] or conf_in['docker_img'] in docker_img_set:	# Use end-user specified container image if VIFI node allowes any container image, or user selected one of the allowed images by VIFI node
-						docker_img=conf_in['docker_img']
-					else:
-						f_log.write('Error: Wrong container image specified by end-user. Please, select one from '+str(docker_img_set))
+					docker_img=setServiceImage(docker_img_set, conf_in['docker_img'])	# Check user requests an allowed service image
+					if not docker_img:
+						f_log.write('Error: Wrong container image specified by end-user. Please, select one from '+str(docker_img_set.keys()))
 						continue
-					if str(ser_check_thr).lower()=='any' or conf_in['ser_check_thr']<ser_check_thr:
-						ser_check_thr=conf_in['ser_check_thr']
+					docker_rep=setServiceNumber(docker_rep, conf_in['docker_rep'])	# set number of service tasks to allowed number
+					if docker_rep!=conf_in['docker_rep']:
+						f_log.write("Warning: Number of containers for request "+str(request)+" will be "+str(docker_rep)+" at "+str(time.time())+"\n")
+					ser_check_thr=setServiceThreshold(ser_check_thr, conf_in['ser_check_thr'])	# set ttl to allowed value
+					if ser_check_thr!=conf_in['ser_check_thr']:
+						f_log.write("Warning: Service check threshold for request "+str(request)+" will be "+str(ser_check_thr)+" at "+str(time.time())+"\n")
 				else:
 					f_log.write("Error: Configuration does not exsit for "+request+" at "+str(time.time())+"\n")
 					continue
