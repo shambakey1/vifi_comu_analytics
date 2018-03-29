@@ -8,7 +8,7 @@ Created on Feb 25, 2018
 import yaml, time, os, sys, shutil, docker, json, uuid, requests, docker
 from typing import List
 from builtins import str, int
-from _ast import Str
+
 #from botocore.vendored.requests.compat import str
 
 def load_conf(infile:str)->dict:
@@ -152,7 +152,7 @@ def getMetricsValues(m:List[str], start_t:float,end_t:float,prom_path:str,step:i
 	return res_values # Return metrics names
 
 def loadVIFIConf(conf_f:str)->dict:
-	''' Load VIFI configuration and make any necessary initialization for (sub)workflows
+	''' Load VIFI configuration for VIFI Node and make any necessary initialization for (sub)workflows
 	@param conf_f: VIFI configuration file name (in YAML)
 	@type conf_f: str 
 	'''
@@ -302,20 +302,59 @@ def setServiceThreshold(ser_check_thr:str,user_thr:int)->int:
 			return int(ser_check_thr)	# Return maximum allowed threshold by VIFI Node as user requires more than what is allowed
 		
 def createUserService(client,service_name:str,docker_rep:int,script_path_in:str,request:str,container_dir:str,\
-					data_dir:dict,user_data_dir:dict,work_dir:str,f:str,docker_img:str,docker_cmd:str):
+					data_dir:dict,user_data_dir:dict,work_dir:str,f:str,docker_img:str,docker_cmd:str,\
+					user_args:List[str]=[],user_envs:List[str]=None,user_mnts:List[str]=None)->docker.models.services.Service:
+	''' Create request service with required configurations (e.g., required mounts, environment variabls, command, 
+	arguments ... etc). Currently, service is created as docker service
+	@param client: Client connection to docker enginer
+	@type client: docker.client.DockerClient
+	@param service_name: Required service name
+	@type service_name: str
+	@param docker_rep: Number of service tasks
+	@type docker_rep: int
+	@param script_path_in: Parent path for user's request
+	@type script_path_in: str
+	@param request: Directory name of user's request
+	@type request: str
+	@param container_dir: Container directory
+	@type container_dir: str
+	@param data_dir: Information dictionary of available data on current VIFI Node
+	@type data_dir: dict
+	@param user_data_dir: User specified mapping between required data directories and data paths inside created service tasks
+	@type user_data_dir: dict
+	@param work_dir: Working directory inside created service tasks
+	@type work_dir: str
+	@param f: User script to run within created service tasks
+	@type f: str
+	@param docker_img: Required service image (Currently, docker image)
+	@type docker_img: str
+	@param docker_cmd: User's command to run within created service tasks (e.g., python)
+	@type docker_cmd: str
+	@param user_args: User's arguments passed to @docker_cmd. Default is empty list
+	@type user_args: List[str]
+	@param user_envs: User list of environment variables for the created service tasks
+	@type user_envs: List[str]
+	@param user_mnts: User list of required mounts inside created service tasks
+	@type user_mnts: List[str]
+	@return: Required service
+	@rtype: docker.models.services.Service    
 	'''
-	'''
 	
-	cmd="docker service create --name "+service_name+" --replicas "+docker_rep+" --restart-condition=on-failure \
-	--mount type=bind,source="+os.path.join(script_path_in,request)+",destination="+container_dir+" --mount type=\
-	bind,source="+data_dir+",destination="+conf_in['data_dir_container']+" --mount type=bind,source="+climate_dir+\
-	",destination="+climate_dir_container+" -w "+work_dir+" --env MY_TASK_ID={{.Task.Name}} --env PYTHONPATH="+\
-	climate_dir_container+" --env SCRIPTFILE="+f+" "+docker_img+" "+docker_cmd
+	envs=['MY_TASK_ID={{.Task.Name}}','SCRIPTFILE='+f]	# Initialize list of environment variables
+	if user_envs:	# Append user environment variables if any
+		envs.extend(user_envs)
+		
 	
-	client.services.create(name=service_name,mode={'Replicated':{'Replicas':docker_rep}},restart_policy=\
-						{'condition':'on-failure'})
-	
-	
+	mnts=[os.path.join(script_path_in,request)+":"+container_dir]	# Initialize list of mounts for user's request
+	for x in user_data_dir.keys():	# mount data physical path at VIFI Node to user specified paths
+		mnts.append(data_dir[x]['path']+":"+user_data_dir[x])
+	if user_mnts:	# Append user mounts if any
+		mnts.extend(user_mnts)
+		
+	# Now, create the required (docker) service, and return it
+	return client.services.create(name=service_name,mode={'Replicated':{'Replicas':docker_rep}},restart_policy=\
+						{'condition':'on-failure'},mounts=mnts,workdir=work_dir,env=envs,image=docker_img,\
+						command=docker_cmd,args=user_args)
 		
 def vifi_run(set:str,conf:dict)->None:
 	''' VIFI request analysis and processing procedure for a specific set
