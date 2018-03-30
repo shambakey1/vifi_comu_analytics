@@ -26,6 +26,9 @@ Prometheus_parameters:
   metrics_values_path: ''    # Default path to store @metrics_values_f
   write_metrics: False        # If set, write metrics values to @metrics_values_path/@metrics_values_f 
   
+############ LOGGING PARAMETERS #################
+vifi_log: '/f/personal/postdoc/uncc/vifi/test/vifi_log.out' 
+  
 ######## GENERAL PARAMETERS (PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES FOR EACH DOMAIN) #################
 domains: 
   root_script_path: # Root directory that contains separate directory for each domains

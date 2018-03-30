@@ -1,0 +1,20 @@
+################ SAMPLE VIFI USER CONFIGURATION FILE ###################
+#TODO: Currently, this file is created manually. In the future, a function can be used to generate this file \
+# to generate some parameters appropriately (e.g., service name can be unique for this user)
+
+userid: vifi_ast_user_1
+total_inputs: 
+- ast_crts_server.py
+- crts_output.csv
+
+services:                    # This section specifies required services by user
+ ser1:                       # Service name
+  script: ast_crts_server.py # The user script to run inside created service
+  image: "shambakey1/ocw"    # The image (e.g., docker image) 
+  cmd_eng: python            # Command to run user's script
+  args:                      # Arguments to be passed for user's script
+  tasks: 1                   # Required number of tasks for the created service
+  data:                      # Required data for the service
+   crts: "/crts_data"        # Key=value, where 'key' is the data 'key' as retrived by data management layer, where 'value' is path of data insided the created service (e.g., data path inside docker container)
+  results:                   # List of result files of the service
+  - crts_features.csv
