@@ -66,7 +66,6 @@ domains:
         schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
         keywords: # TODO: May be important for data management and search for related data
       docker:         # Docker parameters for specific workflow
-        container_dir: "/home"
         work_dir: '/home'
         docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is in the list, this means that the end user can select any image 
          'shambakey1/ocw_docker' :
@@ -89,8 +88,6 @@ domains:
         schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
         keywords: # TODO: May be important for data management and search for related data
       docker:         # Docker parameters for specific workflow
-        container_dir: "/home"
-        work_dir: '/home'
         docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is the first value in the list, this means that the end user can select any image 
          'shambakey1/ocw_cordex' :
           registery: "https://hub.docker.com/r/shambakey1/ocw_cordex/"
@@ -104,9 +101,6 @@ domains:
       exist_ok: True  # If true, use alrady existing folder if one does
       data_dir: # Result from data management layer
       docker:         # Docker parameters for this specific workflow
-        container_dir: "/home"
-        work_dir: '/home'
-        docker_img: 
         docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is the first value in the list, this means that the end user can select any image 
          'shambakey1/python' : 
           registery: "https://hub.docker.com/r/shambakey1/python/"
@@ -122,8 +116,6 @@ domains:
         schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
         keywords: # TODO: May be important for data management and search for related data
       docker:         # Docker parameters for this specific workflow
-        container_dir: "/home"
-        work_dir: '/home'
         docker_img: 
          'shambakey1/python' : 
           registery: "https://hub.docker.com/r/shambakey1/python/"
