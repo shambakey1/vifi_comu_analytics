@@ -435,6 +435,20 @@ class vifi(object):
 		#TODO: There can be better ways to generate unique service name
 		return str(uuid.uuid4())
 	
+	def delService(self,client:docker.client.DockerClient,ser_name:str,term_time:str)->None:
+		''' Deletes specified service after specified termination time
+		@param client: Docker client connection
+		@type client: docker.client.DockerClient 
+		@param ser_name: Service name 
+		@type ser_name: str
+		@param term_time: Termination time after which the specified service is removed
+		@type term_time: str  
+		'''
+		
+		#TODO: Currently, this function either directly removes the service, or leaves it indefinitely. In the future, there should be a separate thread (such that other requests are not delayed until the specified service is removed) to monitor services and remove them according to specified termination time.
+		if term_time != 'inf':
+			client.services.get(ser_name).remove()
+	
 	def s3Transfer(self,user_s3_conf:dict,data_path:str)->None:
 		''' Transfer files to S3 bucket
 		@param user_s3_conf: User configurations related to S3 bucket
@@ -516,109 +530,104 @@ class vifi(object):
 						#TODO: if this situation continues, then move to failed
 						continue
 					
-					# Check required service name uniqueness (Just a precaution, as the request name- which should also be the service name- must be unique when the user made the request)
-					service_name=self.checkSerName(conf_in['ser_name'])
-					if not service_name:
-						f_log.write("Error: Another service (i.e., request) with the same name, "+request+", exists at "+str(time.time())+"\n")
-						#TODO: move to failed. In the future, another service name should be generated if desired
-						continue
-					
-					# Check that user required images are allowed by VIFI Node
-					docker_img=self.checkServiceImage(conf['domains']['sets'][set]['docker']['docker_img'],conf_in['image'])
-					if not docker_img:
-						f_log.write('Error: Wrong container images specified by end-user. Please, select one from '+str(conf['domains']['sets'][set]['docker']['docker_img'])+" for request "+request+" at "+str(time.time())+"\n")
-						#TODO: move to failed
-						continue
-					
-					# Check all user required data can be mounted in user required mode (e.g., write mode)
-					if not self.checkDataOpt(conf,conf_in):
-						f_log.write('Error: Wrong data mounting options specified by end-user for request '+request+" at "+str(time.time())+"\n")
-						#TODO: move to failed
-						continue
-					
-					# Check all files are satisfied for current service. Otherwise, move to the next service
-					if not self.check_input_files(os.path.join(script_path_in,request),conf_in['dependencies']['files']):
-						f_log.write("Error: Some or all required files are missed for "+request+" at "+str(time.time())+"\n")
-						#TODO: if this situation continues, then move to failed
-						continue
-					
-					# Check all preceding services are complete, or the preceding service(s) reached the required status, before running the current service
-					if not self.checkSerDep(conf_in):
-						f_log.write("Error: Some or all preceding services are missed for "+request+" at "+str(time.time())+"\n")
-						#TODO: if this situation continues, then move to failed
-						continue
-					
-					# Check if other precedence conditions (e.g., functions) are satisfied before running current service. Otherwise, move to next request
-					if not self.checkFnDep(conf_in):
-						f_log.write("Error: Some or all precedence functions are missed for "+request+" at "+str(time.time())+"\n")
-						#TODO: if this situation continues, then move to failed
-						continue
-					
-					# Check available task number for current service (VIFI Node can limit concurrent number of running tasks for one service)
-					docker_rep=self.setServiceNumber(docker_rep, conf_in['tasks'])	# set number of service tasks to allowed number
-					if docker_rep!=conf_in['tasks']:
-						f_log.write("Warning: Number of tasks for request "+str(request)+" will be "+str(docker_rep)+" at "+str(time.time())+"\n")
+					# Traverse all services of the current request
+					for ser in conf_in['services']:
 						
-					# Check time threshold to check service completeness
-					ser_check_thr=self.setServiceThreshold(ser_check_thr, conf_in['ser_check_thr'])	# set ttl to allowed value
-					if ser_check_thr!=conf_in['ser_check_thr']:
-						f_log.write("Warning: Service check threshold for request "+str(request)+" will be "+str(ser_check_thr)+" at "+str(time.time())+"\n")
-					
-					# Create a 'results' folder in current request (if not already exists) to keep output files. Otherwise, create a 'results' folder with new ID
-					req_res_path_per_request=conf['domains']['req_res_path_per_request']['name']
-					if os.path.exists(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request)):
-						req_res_path_per_request=req_res_path_per_request+"_"+str(uuid.uuid1())
-					os.mkdir(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request))	# To keep only required result files to be further processed or transfered.
-					
-					# Create the required containerized user service, add service name to internal list of services, and log the created service
-					#TOOO: Currently, the created service is appended to an internal list of service. In the future, we may need to keep track of more parameters related to the created service (e.g., user name, request path, ... etc)
-					try:
-						self.createUserService(client=client, service_name=service_name, docker_rep=docker_rep, \
-										script_path_in=script_path_in, request=request, \
-										container_dir=conf_in['container_dir'], data_dir=data_dir, \
-										user_data_dir=conf_in['data'], work_dir=conf_in['work_dir'], f=conf_in['script'], \
-										docker_img=docker_img, docker_cmd=conf_in['cmd_eng'], \
-										user_args=conf_in['args'], user_envs=conf_in['envs'], user_mnts=conf_in['mnts'])
-						self.ser_list.append(service_name)
-						f_log.write(repr(time.time())+":"+str(client.services.get(service_name))+"\n")	# Log the command
-					except:
-						f_log.write("Error: occurred while launching service "+service_name+": "+ str(sys.exc_info())+"\n")
+						# Check required service name uniqueness (Just a precaution, as the request name- which should also be the service name- must be unique when the user made the request)
+						service_name=self.checkSerName(conf_in['services'][ser]['ser_name'])
+						if not service_name:
+							f_log.write("Error: Another service (i.e., request) with the same name, "+request+", exists at "+str(time.time())+"\n")
+							#TODO: move to failed. In the future, another service name should be generated if desired
+							continue
+						
+						# Check that user required images are allowed by VIFI Node
+						docker_img=self.checkServiceImage(conf['domains']['sets'][set]['docker']['docker_img'],conf_in['services'][ser]['image'])
+						if not docker_img:
+							f_log.write('Error: Wrong container images specified by end-user. Please, select one from '+str(conf['domains']['sets'][set]['docker']['docker_img'])+" for request "+request+" at "+str(time.time())+"\n")
+							#TODO: move to failed
+							continue
+						
+						# Check all user required data can be mounted in user required mode (e.g., write mode)
+						if not self.checkDataOpt(conf,conf_in):
+							f_log.write('Error: Wrong data mounting options specified by end-user for request '+request+" at "+str(time.time())+"\n")
+							#TODO: move to failed
+							continue
+						
+						# Check all files are satisfied for current service. Otherwise, move to the next service
+						if not self.check_input_files(os.path.join(script_path_in,request),conf_in['services'][ser]['dependencies']['files']):
+							f_log.write("Error: Some or all required files are missed for "+request+" at "+str(time.time())+"\n")
+							#TODO: if this situation continues, then move to failed
+							continue
+						
+						# Check all preceding services are complete, or the preceding service(s) reached the required status, before running the current service
+						if not self.checkSerDep(conf_in):
+							f_log.write("Error: Some or all preceding services are missed for "+request+" at "+str(time.time())+"\n")
+							#TODO: if this situation continues, then move to failed
+							continue
+						
+						# Check if other precedence conditions (e.g., functions) are satisfied before running current service. Otherwise, move to next request
+						if not self.checkFnDep(conf_in):
+							f_log.write("Error: Some or all precedence functions are missed for "+request+" at "+str(time.time())+"\n")
+							#TODO: if this situation continues, then move to failed
+							continue
+						
+						# Check available task number for current service (VIFI Node can limit concurrent number of running tasks for one service)
+						docker_rep=self.setServiceNumber(docker_rep, conf_in['services'][ser]['tasks'])	# set number of service tasks to allowed number
+						if docker_rep!=conf_in['services'][ser]['tasks']:
+							f_log.write("Warning: Number of tasks for request "+str(request)+" will be "+str(docker_rep)+" at "+str(time.time())+"\n")
 							
-					# Check completeness of created service to transfer results (if required) and to end service
-					if self.check_service_complete(client,service_name,int(docker_rep),int(ser_check_thr)):
-						# Log completeness time
-						f_log.write("FINISHED at "+repr(time.time())+"\n\n")
+						# Check time threshold to check service completeness
+						ser_check_thr=self.setServiceThreshold(ser_check_thr, conf_in['services'][ser]['ser_check_thr'])	# set ttl to allowed value
+						if ser_check_thr!=conf_in['services'][ser]['ser_check_thr']:
+							f_log.write("Warning: Service check threshold for request "+str(request)+" will be "+str(ser_check_thr)+" at "+str(time.time())+"\n")
 						
-						# Move finished service to successful requests path
-						shutil.move(script_processed,script_finished)
+						# Create a 'results' folder in current request (if not already exists) to keep output files. Otherwise, create a 'results' folder with new ID
+						req_res_path_per_request=conf['domains']['req_res_path_per_request']['name']
+						if os.path.exists(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request)):
+							req_res_path_per_request=req_res_path_per_request+"_"+str(uuid.uuid1())
+						os.mkdir(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request))	# To keep only required result files to be further processed or transfered.
 						
-						# Copy required results to specified destinations
-						for f_res in conf_in['results']:
-							# Local copy of required final results (Just in case they are needed in the future)
-							shutil.copy(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request))
+						# Create the required containerized user service, add service name to internal list of services, and log the created service
+						#TOOO: Currently, the created service is appended to an internal list of service. In the future, we may need to keep track of more parameters related to the created service (e.g., user name, request path, ... etc)
+						try:
+							self.createUserService(client=client, service_name=service_name, docker_rep=docker_rep, \
+											script_path_in=script_path_in, request=request, \
+											container_dir=conf_in['services'][ser]['container_dir'], data_dir=data_dir, \
+											user_data_dir=conf_in['services'][ser]['data'], work_dir=conf_in['services'][ser]['work_dir'], f=conf_in['services'][ser]['script'], \
+											docker_img=docker_img, docker_cmd=conf_in['services'][ser]['cmd_eng'], \
+											user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'])
+							self.ser_list.append(service_name)
+							f_log.write(repr(time.time())+":"+str(client.services.get(service_name))+"\n")	# Log the command
+						except:
+							f_log.write("Error: occurred while launching service "+service_name+": "+ str(sys.exc_info())+"\n")
+								
+						# Check completeness of created service to transfer results (if required) and to end service
+						if self.check_service_complete(client,service_name,int(docker_rep),int(ser_check_thr)):
+							# Log completeness time
+							f_log.write("FINISHED at "+repr(time.time())+"\n\n")
 							
-						# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
-						if conf_in['s3']['transfer'] and conf_in['s3']['bucket']:	  # s3_transfer is True and s3_buc has some value
-							self.s3Transfer(conf_in['s3'], os.path.join(script_finished,req_res_path_per_request))
-							f_log.write("Transfered to S3 bucket at "+repr(time.time())+"\n")
-					else:
-						shutil.move(script_processed,script_failed)
-						f_log.write("FAILED at "+repr(time.time())+"\n")
-					
-					# DELTE DOCKER SERVICE
-					try:
-						client.services.get(service_name).remove()
-					except:
-						pass
-				
-			
-				
-			
-					
-				
-					for f in conf_in['main_scripts']:							
-				
+							# Move finished service to successful requests path
+							shutil.move(script_processed,script_finished)
+							
+							# Copy required results to specified destinations
+							for f_res in conf_in['services'][ser]['results']:
+								# Local copy of required final results (Just in case they are needed in the future)
+								shutil.copy(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request))
+								
+							# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
+							if conf_in['services'][ser]['s3']['transfer'] and conf_in['services'][ser]['s3']['bucket']:	  # s3_transfer is True and s3_buc has some value
+								self.s3Transfer(conf_in['services'][ser]['s3'], os.path.join(script_finished,req_res_path_per_request))
+								f_log.write("Transfered to S3 bucket at "+repr(time.time())+"\n")
+						else:
+							shutil.move(script_processed,script_failed)
+							f_log.write("FAILED at "+repr(time.time())+"\n")
 						
+						# Delete service, if required, to release resource
+						try:
+							self.delService(client, service_name, str(conf['domains']['sets'][set]['terminate']))
+						except:
+							f_log.write("Error: failed to delete service "+service_name+" at "+repr(time.time())+"\n")
+							continue
 			else:
 				print('Error: Specified set '+set+' does not exist')
 		except:
