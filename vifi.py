@@ -550,7 +550,6 @@ class vifi(object):
 				### IF DOCKER IS USED FOR THIS SET, THEN INITIALIZE DEFAULT DOCKER PARAMETERS ###
 				### SOME DOCKER PARAMETERS CAN BE OVERRIDEN BY END USER IF ALLOWED ###
 				if 'docker' in conf['domains']['sets'][set] and conf['domains']['sets'][set]['docker']:
-					work_dir=conf['domains']['sets'][set]['docker']['work_dir']
 					docker_img_set=conf['domains']['sets'][set]['docker']['docker_img']	# Set of allowed docker images
 					docker_rep=conf['domains']['sets'][set]['docker']['docker_rep']	# Maximum number of tasks that can be run by any user for this specific set
 					ser_check_thr=conf['domains']['sets'][set]['docker']['ttl'] # Default ttl for each (Docker) service
