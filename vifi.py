@@ -326,8 +326,8 @@ class vifi(object):
 				return int(ser_check_thr)	# Return maximum allowed threshold by VIFI Node as user requires more than what is allowed
 			
 	def createUserService(self,client:docker.client.DockerClient,service_name:str,docker_rep:int,script_path_in:str,request:str,container_dir:str,\
-						data_dir:dict,user_data_dir:dict,work_dir:str,script:str,docker_img:str,docker_cmd:str,\
-						user_args:List[str]=[],ttl,user_envs:List[str]=None,user_mnts:List[str]=None)->docker.models.services.Service:
+						data_dir:dict,user_data_dir:dict,work_dir:str,script:str,docker_img:str,docker_cmd:str,ttl,
+						user_args:List[str]=[],user_envs:List[str]=None,user_mnts:List[str]=None)->docker.models.services.Service:
 		''' Create request service with required configurations (e.g., required mounts, environment variabls, command, 
 		arguments ... etc). Currently, service is created as docker service
 		@param client: Client connection to docker enginer
