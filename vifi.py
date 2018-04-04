@@ -489,7 +489,7 @@ class vifi(object):
 			key_obj=user_s3_conf['path']+"/"+f_res
 			s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 			
-	def vifi_run(self,set:str,conf:dict,set_fn:str=None)->None:
+	def vifi_run(self,set:str,conf:dict=None,set_fn:str=None)->None:
 		''' VIFI request analysis and processing procedure for a specific set. The specified set may request a \
 		specific function to modify/override default processing behavior. The default behavior of 'vifi_run' is to \
 		keep incoming requests at specific locations, then run them as containerized applications in container \
@@ -505,7 +505,17 @@ class vifi(object):
 		f_log=''	# Variable of log file
 		
 		try:
-			if set in conf['domains']['sets']: # Check if required set exists
+			
+			# Make sure that VIFI server configuration exist 
+			if not conf:
+				if self.vifi_conf:
+					conf=self.vifi_conf
+				else:
+					print('Error: No VIFI server configuration exists')
+					sys.exit()
+					
+			# Check if required set exists
+			if set in conf['domains']['sets']:
 				### INITIALIZE USER PARAMETERS (APPLICABLE FOR ANY USER) ###
 				conf_file_name=conf['user_conf']['conf_file_name']
 	
@@ -665,8 +675,8 @@ class vifi(object):
 		
 	if __name__ == '__main__':
 		conf_f='vifi_config.yml'		# VIFI configuration file
-		conf=loadVIFIConf(conf_f)		# Initialize VIIF configuration (i.e., directory structure for different sets (i.e., (sub)workflows))
-		vifi_run(conf=conf,set='SHBE')		# Run VIFI analysis (to receive and process requests) for the specified set
+		vifi_server=vifi(conf_f)		# Initialize VIIF configuration (i.e., directory structure for different sets (i.e., (sub)workflows))
+		vifi_server.vifi_run(set='JPL_cordex')		# Run VIFI analysis (to receive and process requests) for the specified set
 		
 	
 		
