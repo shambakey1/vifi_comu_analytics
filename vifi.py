@@ -177,7 +177,15 @@ class vifi(object):
 				
 		return res_values # Return metrics names
 	
-	def loadVIFIConf(self,conf_f:str)->None:
+	def descVIFI(self):
+		''' Prints general description about current VIFI instance '''
+		
+		if self.vifi_conf:
+			print(str(self.vifi_conf))
+		else:
+			print('Current VIFI instance has no configuration')
+	
+	def loadVIFIConf(self,conf_f:str=None)->None:
 		''' Load VIFI configuration for VIFI Node and make any necessary initialization for (sub)workflows
 		@param conf_f: VIFI configuration file name (in YAML)
 		@type conf_f: str 
@@ -188,52 +196,55 @@ class vifi(object):
 				self.vifi_conf_f=conf_f
 				with open(conf_f,'r') as f:
 					self.vifi_conf=yaml.load(f)
-				
-				# Info for root request directory
-				root_script_path=self.vifi_conf['domains']['root_script_path']['name']	# Root directory for different domains requests
-				root_script_path_mode=self.vifi_conf['domains']['root_script_path']['mode']	# Mode of requests root directory
-				root_script_path_exist=self.vifi_conf['domains']['root_script_path']['exist_ok']	# If true, use already existing folder if one exists
-				#FIXME: the following instruction should be used with the proper 'mode' configuration
-				#os.makedirs(root_script_path,mode=root_script_path_mode,exist_ok=root_script_path_exist)	# Create requests root directory if not exists
-				os.makedirs(root_script_path,exist_ok=root_script_path_exist)	# Create requests root directory if not exists
-				
-				# Default info for request structure within each domain 
-				request_path_in=self.vifi_conf['domains']['script_path_in']['name']	# Path to receive requests within each domain
-				request_path_in_mode=self.vifi_conf['domains']['script_path_in']['mode']	# Mode for received requests folder
-				request_path_in_exist=self.vifi_conf['domains']['script_path_in']['exist_ok']	# If true, use already existing folder if one exists
-				
-				request_path_out=self.vifi_conf['domains']['script_path_out']['name']	# Path to output results within each domain
-				request_path_out_mode=self.vifi_conf['domains']['script_path_out']['mode']	# Mode for output results folder
-				request_path_out_exist=self.vifi_conf['domains']['script_path_out']['exist_ok']	# If true, use already existing folder if one exists
-				
-				request_path_failed=self.vifi_conf['domains']['script_path_failed']['name']	# Path to failed results within each domain
-				request_path_failed_mode=self.vifi_conf['domains']['script_path_failed']['mode']	# Mode for failed results folder
-				request_path_failed_exist=self.vifi_conf['domains']['script_path_failed']['exist_ok']	# If true, use already existing folder if one exists
-				
-				log_path=self.vifi_conf['domains']['log_path']['name']	# Path to logs within each domain
-				log_path_mode=self.vifi_conf['domains']['log_path']['mode']	# Mode for logs folder
-				log_path_exist=self.vifi_conf['domains']['log_path']['exist_ok']	# If true, use already existing folder if one exists
-				
-				#req_res_path_per_request=self.vifi_conf['domains']['req_res_path_per_request']['name']	# Path to intermediate results folder within each domain
-				#req_res_path_per_request_mode=self.vifi_conf['domains']['req_res_path_per_request']['mode']	# Mode for logs folder
-				#req_res_path_per_request_exist=self.vifi_conf['domains']['req_res_path_per_request']['exist_ok']	# If true, use already existing folder if one exists
-				
-				for d in self.vifi_conf['domains']['sets']:	# Create a sub-directory for each domain under the requests root directory
-					#FIXME: the following commented instruction should be used whith the proper 'mode' configuration
-					#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name']),mode=conf['domains']['sets'][d]['mode'],exist_ok=conf['domains']['sets'][d]['exist_ok'])
-					#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_in),mode=request_path_in_mode,exist_ok=request_path_in_exist)
-					#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_out),mode=request_path_out_mode,exist_ok=request_path_out_exist)
-					#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_failed),mode=request_path_failed_mode,exist_ok=request_path_failed_exist)
-					#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],log_path),mode=log_path_mode,exist_ok=log_path_exist)
-					#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],req_res_path_per_request),mode=req_res_path_per_request_mode,exist_ok=req_res_path_per_request_exist)
-					os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name']),exist_ok=self.vifi_conf['domains']['sets'][d]['exist_ok'])
-					os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],request_path_in),exist_ok=request_path_in_exist)
-					os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],request_path_out),exist_ok=request_path_out_exist)
-					os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],request_path_failed),exist_ok=request_path_failed_exist)
-					os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],log_path),exist_ok=log_path_exist)
-					#os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],req_res_path_per_request),exist_ok=req_res_path_per_request_exist)	
 			else:
-					print('Error: could not find VIFI general configuration file') 
+				if not self.vifi_conf:
+					print('Error: could not find VIFI general configuration')
+					sys.exit()
+				
+			# Info for root request directory
+			root_script_path=self.vifi_conf['domains']['root_script_path']['name']	# Root directory for different domains requests
+			root_script_path_mode=self.vifi_conf['domains']['root_script_path']['mode']	# Mode of requests root directory
+			root_script_path_exist=self.vifi_conf['domains']['root_script_path']['exist_ok']	# If true, use already existing folder if one exists
+			#FIXME: the following instruction should be used with the proper 'mode' configuration
+			#os.makedirs(root_script_path,mode=root_script_path_mode,exist_ok=root_script_path_exist)	# Create requests root directory if not exists
+			os.makedirs(root_script_path,exist_ok=root_script_path_exist)	# Create requests root directory if not exists
+			
+			# Default info for request structure within each domain 
+			request_path_in=self.vifi_conf['domains']['script_path_in']['name']	# Path to receive requests within each domain
+			request_path_in_mode=self.vifi_conf['domains']['script_path_in']['mode']	# Mode for received requests folder
+			request_path_in_exist=self.vifi_conf['domains']['script_path_in']['exist_ok']	# If true, use already existing folder if one exists
+			
+			request_path_out=self.vifi_conf['domains']['script_path_out']['name']	# Path to output results within each domain
+			request_path_out_mode=self.vifi_conf['domains']['script_path_out']['mode']	# Mode for output results folder
+			request_path_out_exist=self.vifi_conf['domains']['script_path_out']['exist_ok']	# If true, use already existing folder if one exists
+			
+			request_path_failed=self.vifi_conf['domains']['script_path_failed']['name']	# Path to failed results within each domain
+			request_path_failed_mode=self.vifi_conf['domains']['script_path_failed']['mode']	# Mode for failed results folder
+			request_path_failed_exist=self.vifi_conf['domains']['script_path_failed']['exist_ok']	# If true, use already existing folder if one exists
+			
+			log_path=self.vifi_conf['domains']['log_path']['name']	# Path to logs within each domain
+			log_path_mode=self.vifi_conf['domains']['log_path']['mode']	# Mode for logs folder
+			log_path_exist=self.vifi_conf['domains']['log_path']['exist_ok']	# If true, use already existing folder if one exists
+			
+			#req_res_path_per_request=self.vifi_conf['domains']['req_res_path_per_request']['name']	# Path to intermediate results folder within each domain
+			#req_res_path_per_request_mode=self.vifi_conf['domains']['req_res_path_per_request']['mode']	# Mode for logs folder
+			#req_res_path_per_request_exist=self.vifi_conf['domains']['req_res_path_per_request']['exist_ok']	# If true, use already existing folder if one exists
+			
+			for d in self.vifi_conf['domains']['sets']:	# Create a sub-directory for each domain under the requests root directory
+				#FIXME: the following commented instruction should be used whith the proper 'mode' configuration
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name']),mode=conf['domains']['sets'][d]['mode'],exist_ok=conf['domains']['sets'][d]['exist_ok'])
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_in),mode=request_path_in_mode,exist_ok=request_path_in_exist)
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_out),mode=request_path_out_mode,exist_ok=request_path_out_exist)
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],request_path_failed),mode=request_path_failed_mode,exist_ok=request_path_failed_exist)
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],log_path),mode=log_path_mode,exist_ok=log_path_exist)
+				#os.makedirs(os.path.join(root_script_path,conf['domains']['sets'][d]['name'],req_res_path_per_request),mode=req_res_path_per_request_mode,exist_ok=req_res_path_per_request_exist)
+				os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name']),exist_ok=self.vifi_conf['domains']['sets'][d]['exist_ok'])
+				os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],request_path_in),exist_ok=request_path_in_exist)
+				os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],request_path_out),exist_ok=request_path_out_exist)
+				os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],request_path_failed),exist_ok=request_path_failed_exist)
+				os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],log_path),exist_ok=log_path_exist)
+				#os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],req_res_path_per_request),exist_ok=req_res_path_per_request_exist)	
+			 
 		except:
 			print('Error occurred during loading VIFI configuration file:')
 			print(sys.exc_info())	
