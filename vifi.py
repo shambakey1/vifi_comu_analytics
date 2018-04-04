@@ -238,7 +238,7 @@ class vifi(object):
 			print('Error occurred during loading VIFI configuration file:')
 			print(sys.exc_info())	
 			
-	def checkServiceComplete(self,client,service_id:str,task_num_in:int,ttl:int=300)->bool:
+	def checkServiceComplete(self,client:docker.client.DockerClient,service_id:str,task_num_in:int,ttl:int=300)->bool:
 		''' Check if specified Docker service has finished currently or within specified time threshold
 		@param client: Client connection to Docker Engine
 		@type client: client connection
@@ -325,7 +325,7 @@ class vifi(object):
 			else:
 				return int(ser_check_thr)	# Return maximum allowed threshold by VIFI Node as user requires more than what is allowed
 			
-	def createUserService(self,client,service_name:str,docker_rep:int,script_path_in:str,request:str,container_dir:str,\
+	def createUserService(self,client:docker.client.DockerClient,service_name:str,docker_rep:int,script_path_in:str,request:str,container_dir:str,\
 						data_dir:dict,user_data_dir:dict,work_dir:str,script:str,docker_img:str,docker_cmd:str,\
 						user_args:List[str]=[],ttl,user_envs:List[str]=None,user_mnts:List[str]=None)->docker.models.services.Service:
 		''' Create request service with required configurations (e.g., required mounts, environment variabls, command, 
