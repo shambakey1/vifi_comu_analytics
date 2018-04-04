@@ -95,8 +95,6 @@ domains:
           registery: "https://hub.docker.com/r/shambakey1/ocw_cordex/"
         docker_rep: "any"
         ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
-      schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
-      keywords: # TODO: May be important for data management and search for related data
     AST:
       name: ast
       mode: 0o777

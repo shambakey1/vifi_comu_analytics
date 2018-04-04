@@ -31,6 +31,9 @@ class vifi(object):
 		
 		if vifi_conf_f and os.path.isfile(vifi_conf_f):
 			self.loadVIFIConf(vifi_conf_f)
+			
+			# Initialize containerization technology if any
+			
 		else:
 			print("Error: No VIFI configuration file has been passed to this instance")
 			sys.exit()
@@ -235,7 +238,7 @@ class vifi(object):
 			print('Error occurred during loading VIFI configuration file:')
 			print(sys.exc_info())	
 			
-	def check_service_complete(self,client,service_id:str,task_num_in:int,ttl:int=300)->bool:
+	def checkServiceComplete(self,client,service_id:str,task_num_in:int,ttl:int=300)->bool:
 		''' Check if specified Docker service has finished currently or within specified time threshold
 		@param client: Client connection to Docker Engine
 		@type client: client connection
@@ -324,7 +327,7 @@ class vifi(object):
 			
 	def createUserService(self,client,service_name:str,docker_rep:int,script_path_in:str,request:str,container_dir:str,\
 						data_dir:dict,user_data_dir:dict,work_dir:str,script:str,docker_img:str,docker_cmd:str,\
-						user_args:List[str]=[],user_envs:List[str]=None,user_mnts:List[str]=None)->docker.models.services.Service:
+						user_args:List[str]=[],ttl,user_envs:List[str]=None,user_mnts:List[str]=None)->docker.models.services.Service:
 		''' Create request service with required configurations (e.g., required mounts, environment variabls, command, 
 		arguments ... etc). Currently, service is created as docker service
 		@param client: Client connection to docker enginer
@@ -345,14 +348,16 @@ class vifi(object):
 		@type user_data_dir: dict
 		@param work_dir: Working directory inside created service tasks
 		@type work_dir: str
-		@param f: User script to run within created service tasks
-		@type f: str
+		@param script: User script to run within created service tasks
+		@type script: str
 		@param docker_img: Required service image (Currently, docker image)
 		@type docker_img: str
 		@param docker_cmd: User's command to run within created service tasks (e.g., python)
 		@type docker_cmd: str
 		@param user_args: User's arguments passed to @docker_cmd. Default is empty list
 		@type user_args: List[str]
+		@param ttl: Threshold time of the service (i.e., the time by which the service should have completed). It is recorded as one of the environment variables of the service
+		@type ttl: int  
 		@param user_envs: User list of environment variables for the created service tasks
 		@type user_envs: List[str]
 		@param user_mnts: User list of required mounts inside created service tasks
@@ -361,7 +366,7 @@ class vifi(object):
 		@rtype: docker.models.services.Service    
 		'''
 		
-		envs=['MY_TASK_ID={{.Task.Name}}','SCRIPTFILE='+f]	# Initialize list of environment variables
+		envs=['MY_TASK_ID={{.Task.Name}}','SCRIPTFILE='+script,'ttl='+ttl]	# Initialize list of environment variables
 		if user_envs:	# Append user environment variables if any
 			envs.extend(user_envs)
 		
@@ -377,15 +382,34 @@ class vifi(object):
 							command=docker_cmd+' '+script,args=user_args)
 		
 		
-	def checkSerDep(self,user_conf:dict)->bool:
-		''' Check if all preceding services are satisfied before running current service.
-		@param user_conf: User configuration file
+	def checkSerDep(self,client:docker.client.DockerClient,ser_name:str,user_conf:dict)->bool:
+		''' Check if all preceding services are satisfied (i.e., completed) before running current service.
+		@param client: Client connection to Docker
+		@type client: :docker.client.DockerClient 
+		@param ser_name: Service name to check its dependency
+		@type ser_name: str  
+		@param user_conf: User configurations
 		@type user_conf: dict  
 		@return: True if input service dependencies are satisfied. Otherwise, False
 		@rtype: bool  
 		'''
 		
-		#TODO: Currently, this method alawys returns True. In the future, more sophosticated check should be done
+		#TODO: Currently, this method returns True if each previous service is completed. In the future, more sophisticated behavior may be needed
+		
+		# Get list of preceding services that should complete before current service
+		dep_servs=user_conf['services'][ser_name]['dependencies']['ser']
+		
+		# Check satisfaction of each service (i.e., each service should reach the desired state)
+		for ser in dep_servs:
+			# First, check service existence
+			if not client.services.get(ser):
+				return False
+			
+			# Check if service is complete. Note that we do not have to wait for the previous service ttl to check
+			# completeness because the previous service should have already completed. Thus, the ttl is passed as 0
+			if not self.checkServiceComplete(client, ser, ser.attrs['Spec']['Mode']['Replicated']['Replicas'],0):
+				return False
+		
 		return True
 	
 	def checkFnDep(self,user_conf:dict)->bool:
@@ -534,7 +558,7 @@ class vifi(object):
 					for ser in conf_in['services']:
 						
 						# Check required service name uniqueness (Just a precaution, as the request name- which should also be the service name- must be unique when the user made the request)
-						service_name=self.checkSerName(conf_in['services'][ser]['ser_name'])
+						service_name=self.checkSerName(ser)
 						if not service_name:
 							f_log.write("Error: Another service (i.e., request) with the same name, "+request+", exists at "+str(time.time())+"\n")
 							#TODO: move to failed. In the future, another service name should be generated if desired
@@ -560,7 +584,7 @@ class vifi(object):
 							continue
 						
 						# Check all preceding services are complete, or the preceding service(s) reached the required status, before running the current service
-						if not self.checkSerDep(conf_in):
+						if not self.checkSerDep(service_name,conf_in):
 							f_log.write("Error: Some or all preceding services are missed for "+request+" at "+str(time.time())+"\n")
 							#TODO: if this situation continues, then move to failed
 							continue
@@ -595,14 +619,14 @@ class vifi(object):
 											container_dir=conf_in['services'][ser]['container_dir'], data_dir=data_dir, \
 											user_data_dir=conf_in['services'][ser]['data'], work_dir=conf_in['services'][ser]['work_dir'], f=conf_in['services'][ser]['script'], \
 											docker_img=docker_img, docker_cmd=conf_in['services'][ser]['cmd_eng'], \
-											user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'])
+											user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_check_thr)
 							self.ser_list.append(service_name)
 							f_log.write(repr(time.time())+":"+str(client.services.get(service_name))+"\n")	# Log the command
 						except:
 							f_log.write("Error: occurred while launching service "+service_name+": "+ str(sys.exc_info())+"\n")
 								
 						# Check completeness of created service to transfer results (if required) and to end service
-						if self.check_service_complete(client,service_name,int(docker_rep),int(ser_check_thr)):
+						if self.checkServiceComplete(client,service_name,int(docker_rep),int(ser_check_thr)):
 							# Log completeness time
 							f_log.write("FINISHED at "+repr(time.time())+"\n\n")
 							

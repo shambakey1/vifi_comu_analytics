@@ -4,8 +4,7 @@
 
 userid: ast_user_1           # User name should be a universal unique name (e.g., the username at institution)
 services:                    # Group of required services for current request. Thus, a single request (to a specified (sub)workflow) consists of zero or more services. The services can be dependent or independent 
- ser1:                       # Service key
-  ser_name: ser1             # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
+ ocw-cordex_stg1:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
    files:                    # Lisf of files that should exist for current service to run including the @script
    - ast_crts_server.py
