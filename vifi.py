@@ -214,9 +214,9 @@ class vifi(object):
 				log_path_mode=self.vifi_conf['domains']['log_path']['mode']	# Mode for logs folder
 				log_path_exist=self.vifi_conf['domains']['log_path']['exist_ok']	# If true, use already existing folder if one exists
 				
-				req_res_path_per_request=self.vifi_conf['domains']['req_res_path_per_request']['name']	# Path to intermediate results folder within each domain
-				req_res_path_per_request_mode=self.vifi_conf['domains']['req_res_path_per_request']['mode']	# Mode for logs folder
-				req_res_path_per_request_exist=self.vifi_conf['domains']['req_res_path_per_request']['exist_ok']	# If true, use already existing folder if one exists
+				#req_res_path_per_request=self.vifi_conf['domains']['req_res_path_per_request']['name']	# Path to intermediate results folder within each domain
+				#req_res_path_per_request_mode=self.vifi_conf['domains']['req_res_path_per_request']['mode']	# Mode for logs folder
+				#req_res_path_per_request_exist=self.vifi_conf['domains']['req_res_path_per_request']['exist_ok']	# If true, use already existing folder if one exists
 				
 				for d in self.vifi_conf['domains']['sets']:	# Create a sub-directory for each domain under the requests root directory
 					#FIXME: the following commented instruction should be used whith the proper 'mode' configuration
@@ -231,7 +231,7 @@ class vifi(object):
 					os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],request_path_out),exist_ok=request_path_out_exist)
 					os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],request_path_failed),exist_ok=request_path_failed_exist)
 					os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],log_path),exist_ok=log_path_exist)
-					os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],req_res_path_per_request),exist_ok=req_res_path_per_request_exist)	
+					#os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],req_res_path_per_request),exist_ok=req_res_path_per_request_exist)	
 			else:
 					print('Error: could not find VIFI general configuration file') 
 		except:
@@ -399,16 +399,17 @@ class vifi(object):
 		# Get list of preceding services that should complete before current service
 		dep_servs=user_conf['services'][ser_name]['dependencies']['ser']
 		
-		# Check satisfaction of each service (i.e., each service should reach the desired state)
-		for ser in dep_servs:
-			# First, check service existence
-			if not client.services.get(ser):
-				return False
-			
-			# Check if service is complete. Note that we do not have to wait for the previous service ttl to check
-			# completeness because the previous service should have already completed. Thus, the ttl is passed as 0
-			if not self.checkServiceComplete(client, ser, ser.attrs['Spec']['Mode']['Replicated']['Replicas'],0):
-				return False
+		# Check satisfaction of each service if any (i.e., each service should reach the desired state)
+		if dep_servs:
+			for ser in dep_servs:
+				# First, check service existence
+				if not client.services.get(ser):
+					return False
+				
+				# Check if service is complete. Note that we do not have to wait for the previous service ttl to check
+				# completeness because the previous service should have already completed. Thus, the ttl is passed as 0
+				if not self.checkServiceComplete(client, ser, ser.attrs['Spec']['Mode']['Replicated']['Replicas'],0):
+					return False
 		
 		return True
 	

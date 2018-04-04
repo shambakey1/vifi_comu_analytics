@@ -75,8 +75,8 @@ domains:
         climate_dir: "/home/ubuntu/climate"
         climate_dir_container: "/climate"
         ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
-    JPL_cordex_sg1:
-      name: jpl_cordex_sg1
+    JPL_cordex:
+      name: jpl_cordex
       mode: 0o777
       exist_ok: True  # If true, use alrady existing folder if one does
       terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
