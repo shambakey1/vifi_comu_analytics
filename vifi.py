@@ -52,9 +52,12 @@ class vifi(object):
 					return yaml.load(f)
 			else:
 				print('Error: No user configuration file is specified')
-		except:
+		except Exception as e:
 			print('Error occurred when opening user input configuration file:')
-			print(sys.exc_info())
+			if hasattr(e, 'message'):
+				print(e.message)
+			else:
+				print(e)
 	
 	def check_input_files(self,in_file_root_loc:str,conf_in_total:List[str])->bool:
 		'''Checks if all user input files and directories exist. Returns true if all exists
@@ -70,9 +73,12 @@ class vifi(object):
 					print('Error: Could not find user required input file/directory '+os.path.join(in_file_root_loc,f))
 					return False
 			return True
-		except:
+		except Exception as e:
 			print('Error: checking user input files and folders:')
-			print(sys.exc_info())
+			if hasattr(e, 'message'):
+				print(e.message)
+			else:
+				print(e)
 	
 	def getPromMetricsNames(self,prom_path:str,uname:str,upass:str,fname:str,fname_path:str)->List[str]:
 		''' Retrive Prometheus metrics names and write them to output file if required in JSON structure 
@@ -244,10 +250,13 @@ class vifi(object):
 				os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],request_path_failed),exist_ok=request_path_failed_exist)
 				os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],log_path),exist_ok=log_path_exist)
 				#os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],req_res_path_per_request),exist_ok=req_res_path_per_request_exist)	
-			 
-		except:
+
+		except Exception as e:
 			print('Error occurred during loading VIFI configuration file:')
-			print(sys.exc_info())	
+			if hasattr(e, 'message'):
+				print(e.message)
+			else:
+				print(e)	
 			
 	def checkServiceComplete(self,client:docker.client.DockerClient,service_id:str,task_num_in:int,ttl:int=300)->bool:
 		''' Check if specified Docker service has finished currently or within specified time threshold
@@ -643,8 +652,12 @@ class vifi(object):
 											user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_check_thr)
 							self.ser_list.append(service_name)
 							f_log.write(repr(time.time())+":"+str(client.services.get(service_name))+"\n")	# Log the command
-						except:
+						except Exception as e:
 							f_log.write("Error: occurred while launching service "+service_name+": "+ str(sys.exc_info())+"\n")
+							if hasattr(e, 'message'):
+								print(e.message)
+							else:
+								print(e)
 								
 						# Check completeness of created service to transfer results (if required) and to end service
 						if self.checkServiceComplete(client,service_name,int(docker_rep),int(ser_check_thr)):
@@ -677,7 +690,7 @@ class vifi(object):
 				print('Error: Specified set '+set+' does not exist')
 		except Exception as e:
 			print('Error occurred during running VIFI for set: '+set)
-			print(sys.exc_info())
+			#print(sys.exc_info())
 			if hasattr(e, 'message'):
 				print(e.message)
 			else:
