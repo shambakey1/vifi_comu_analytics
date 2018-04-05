@@ -339,7 +339,7 @@ class vifi(object):
 	def createUserService(self,client:docker.client.DockerClient,service_name:str,docker_rep:int,script_path_in:str,request:str,container_dir:str,\
 						data_dir:dict,user_data_dir:dict,work_dir:str,script:str,docker_img:str,docker_cmd:str,ttl,
 						user_args:List[str]=[],user_envs:List[str]=None,user_mnts:List[str]=None)->docker.models.services.Service:
-		''' Create request service with required configurations (e.g., required mounts, environment variabls, command, 
+		''' Create request service with required configurations (e.g., required mounts, environment variables, command, 
 		arguments ... etc). Currently, service is created as docker service
 		@param client: Client connection to docker enginer
 		@type client: docker.client.DockerClient
@@ -675,9 +675,13 @@ class vifi(object):
 							continue
 			else:
 				print('Error: Specified set '+set+' does not exist')
-		except:
+		except Exception as e:
 			print('Error occurred during running VIFI for set: '+set)
 			print(sys.exc_info())
+			if hasattr(e, 'message'):
+				print(e.message)
+			else:
+				print(e)
 		finally:
 			if f_log:
 				f_log.close()
