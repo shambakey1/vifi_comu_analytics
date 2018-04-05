@@ -59,19 +59,26 @@ class vifi(object):
 			else:
 				print(e)
 	
-	def check_input_files(self,in_file_root_loc:str,conf_in_total:List[str])->bool:
+	def checkInputFiles(self,in_file_root_loc:str,conf_in_total:dict)->bool:
 		'''Checks if all user input files and directories exist. Returns true if all exists
 		@param in_file_root_loc: Root path location of the user request folder
 		@type in_file_root_loc: str
-		@param conf_in_total: List of required input files/directories to execute user request
-		@type conf_in_total: List[str]  
+		@param conf_in_total: Dictionary of required input files/directories to execute user request
+		@type conf_in_total: dict  
 		'''
 	
 		try:
-			for f in conf_in_total:
-				if not os.path.exists(os.path.join(in_file_root_loc,f)):
-					print('Error: Could not find user required input file/directory '+os.path.join(in_file_root_loc,f))
+			for key,val in conf_in_total:
+				if val=='f' and not os.path.isfile(os.path.join(in_file_root_loc,key)):	# Check file
+					print('Error: Could not find user required input file '+os.path.join(in_file_root_loc,key))
 					return False
+				elif val=='d' and not os.path.isdir(os.path.join(in_file_root_loc,key)):
+					print('Error: Could not find user required input directory '+os.path.join(in_file_root_loc,key))
+					return False
+				elif not os.path.exists(os.path.join(in_file_root_loc,key)):
+					print('Error: Could not find user required input file/directory '+os.path.join(in_file_root_loc,key))
+					return False
+				
 			return True
 		except Exception as e:
 			print('Error: checking user input files and folders:')
@@ -390,11 +397,23 @@ class vifi(object):
 		if user_envs:	# Append user environment variables if any
 			envs.extend(user_envs)
 		
-		mnts=[os.path.join(script_path_in,request)+":"+container_dir]	# Initialize list of mounts for user's request
+		# Mount the user request folder to the specified container_dir if any
+		if container_dir:
+			mnts=[os.path.join(script_path_in,request)+":"+container_dir]	# Initialize list of mounts for user's request
+		else:
+			mnts=[]
+			
+		# Mount the data directories
 		for x in user_data_dir.keys():	# mount data physical path at VIFI Node to user specified paths
 			mnts.append(data_dir[x]['path']+":"+user_data_dir[x])
-		if user_mnts:	# Append user mounts if any
-			mnts.extend(user_mnts)
+			
+		# Append any additional user mounts (which should be in the form source:target:options) relative to the user request directory 
+		if user_mnts:
+			for x in user_mnts:
+				if x[0]=='/':	# User mount should be relative to the user request directory. Thus, any 'source' should not start with '/'
+					x=x[1:]
+				x=os.path.join(script_path_in,request,x)
+				mnts.append(x)
 			
 		# Now, create the required (docker) service, and return it
 		return client.services.create(name=service_name,mode={'Replicated':{'Replicas':docker_rep}},restart_policy=\
@@ -608,7 +627,7 @@ class vifi(object):
 							continue
 						
 						# Check all files are satisfied for current service. Otherwise, move to the next service
-						if not self.check_input_files(os.path.join(script_path_in,request),conf_in['services'][ser]['dependencies']['files']):
+						if not self.checkInputFiles(os.path.join(script_path_in,request),conf_in['services'][ser]['dependencies']['files']):
 							f_log.write("Error: Some or all required files are missed for "+request+" at "+str(time.time())+"\n")
 							#TODO: if this situation continues, then move to failed
 							continue
