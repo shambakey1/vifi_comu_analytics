@@ -720,10 +720,8 @@ class vifi(object):
 			
 		
 	if __name__ == '__main__':
-		conf_f='vifi_config.yml'		# VIFI configuration file
-		vifi_server=vifi(conf_f)		# Initialize VIIF configuration (i.e., directory structure for different sets (i.e., (sub)workflows))
-		vifi_server.loadVIFIConf()
-		vifi_server.vifi_run(set='JPL_cordex')		# Run VIFI analysis (to receive and process requests) for the specified set
+		print("########## THIS IS VIFI SERVER ##########")
+		print(vifi.__doc__)
 		
 	
 		
