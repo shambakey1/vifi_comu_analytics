@@ -31,94 +31,95 @@ vifi_log: '/f/personal/postdoc/uncc/vifi/test/vifi_log.out'
   
 ######## GENERAL PARAMETERS (PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES FOR EACH DOMAIN) #################
 domains: 
-  root_script_path: # Root directory that contains separate directory for each domains
-    name: /home/ubuntu/requests
-    mode: 0o777
-    exist_ok: True  # If true, use alrady existing folder if one does
-  script_path_in: # Sub-folder within domain directory to keep incoming requests 
-    name: in
-    mode: 0o777
-    exist_ok: True  # If true, use alrady existing folder if one does
-  script_path_out:  # Sub-folder within domain directory to keep results of successful requests (i.e., to locally store results)
-    name: finished
-    mode: 0o777
-    exist_ok: True  # If true, use alrady existing folder if one does
-  script_path_failed: # Sub-folder within domain directory to keep failed requests
-    name: failed
-    mode: 0o777
-    exist_ok: True  # If true, use alrady existing folder if one does
-  log_path: # Sub-folder within domain directory to keep logs. Useful to check status
-    name: log
-    mode: 0o777
-    exist_ok: True  # If true, use alrady existing folder if one does
-  req_res_path_per_request: # Sub-folder within each request to store results. The folder can be removed after processing
-    name: results
-    mode: 0o777
-    exist_ok: True  # If true, use alrady existing folder if one does
-  sets:   # Each workflow has a sub folder under the @root_script_path
-    JPL:
-      name: jpl
-      mode: 0o777
-      exist_ok: True  # If true, use alrady existing folder if one does
-      terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
-      data_dir:   # Result from data management layer
-       data_GPM: 
-        path: "/home/ubuntu/data_GPM"
-        schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
-        keywords: # TODO: May be important for data management and search for related data
-      docker:         # Docker parameters for specific workflow
-        docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is in the list, this means that the end user can select any image 
-         'shambakey1/ocw_docker' :
-          registery: "https://hub.docker.com/r/shambakey1/ocw_docker/"
-        docker_rep: "any" # User can change number of containers if @docker_rep is 'any' or greater than number of containers required by end-user
-        climate_dir: "/home/ubuntu/climate"
-        climate_dir_container: "/climate"
-        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
-    JPL_cordex:
-      name: jpl_cordex
-      mode: 0o777
-      exist_ok: True  # If true, use alrady existing folder if one does
-      terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
-      data_dir: # Result from data management layer
-       NAM-44:  
-        path: "/home/ubuntu/NAM-44"
-        schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
-        keywords: # TODO: May be important for data management and search for related data
-       obs4mips: 
-        path: "/home/ubuntu/obs4mips"
-        schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
-        keywords: # TODO: May be important for data management and search for related data
-      docker:         # Docker parameters for specific workflow
-        docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is the first value in the list, this means that the end user can select any image 
-         'shambakey1/ocw_cordex' :
-          registery: "https://hub.docker.com/r/shambakey1/ocw_cordex/"
-        docker_rep: "any"
-        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
-    AST:
-      name: ast
-      mode: 0o777
-      exist_ok: True  # If true, use alrady existing folder if one does
-      terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
-      data_dir: # Result from data management layer
-      docker:         # Docker parameters for this specific workflow
-        docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is the first value in the list, this means that the end user can select any image 
-         'shambakey1/python' : 
-          registery: "https://hub.docker.com/r/shambakey1/python/"
-        docker_rep: "any"
-        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
-    SHBE:
-      name: shbe
-      mode: 0o777
-      exist_ok: True  # If true, use alrady existing folder if one does
-      terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
-      data_dir: # Result from data management layer
-       data_CMU: 
-        path: "/home/ubuntu/data_CMU"
-        schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
-        keywords: # TODO: May be important for data management and search for related data
-      docker:         # Docker parameters for this specific workflow
-        docker_img: 
-         'shambakey1/python' : 
-          registery: "https://hub.docker.com/r/shambakey1/python/"
-        docker_rep: "any"
-        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
+ proc_int: 1  # Time interval in seconds between each processing cycle of input requests 
+ root_script_path: # Root directory that contains separate directory for each domains
+   name: /home/ubuntu/requests
+   mode: 0o777
+   exist_ok: True  # If true, use alrady existing folder if one does
+ script_path_in: # Sub-folder within domain directory to keep incoming requests 
+   name: in
+   mode: 0o777
+   exist_ok: True  # If true, use alrady existing folder if one does
+ script_path_out:  # Sub-folder within domain directory to keep results of successful requests (i.e., to locally store results)
+   name: finished
+   mode: 0o777
+   exist_ok: True  # If true, use alrady existing folder if one does
+ script_path_failed: # Sub-folder within domain directory to keep failed requests
+   name: failed
+   mode: 0o777
+   exist_ok: True  # If true, use alrady existing folder if one does
+ log_path: # Sub-folder within domain directory to keep logs. Useful to check status
+   name: log
+   mode: 0o777
+   exist_ok: True  # If true, use alrady existing folder if one does
+ req_res_path_per_request: # Sub-folder within each request to store results. The folder can be removed after processing
+   name: results
+   mode: 0o777
+   exist_ok: True  # If true, use alrady existing folder if one does
+ sets:   # Each workflow has a sub folder under the @root_script_path
+   JPL:
+     name: jpl
+     mode: 0o777
+     exist_ok: True  # If true, use alrady existing folder if one does
+     terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
+     data_dir:   # Result from data management layer
+      data_GPM: 
+       path: "/home/ubuntu/data_GPM"
+       schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
+       keywords: # TODO: May be important for data management and search for related data
+     docker:         # Docker parameters for specific workflow
+       docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is in the list, this means that the end user can select any image 
+        'shambakey1/ocw_docker' :
+         registery: "https://hub.docker.com/r/shambakey1/ocw_docker/"
+       docker_rep: "any" # User can change number of containers if @docker_rep is 'any' or greater than number of containers required by end-user
+       climate_dir: "/home/ubuntu/climate"
+       climate_dir_container: "/climate"
+       ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
+   JPL_cordex:
+     name: jpl_cordex
+     mode: 0o777
+     exist_ok: True  # If true, use alrady existing folder if one does
+     terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
+     data_dir: # Result from data management layer
+      NAM-44:  
+       path: "/home/ubuntu/NAM-44"
+       schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
+       keywords: # TODO: May be important for data management and search for related data
+      obs4mips: 
+       path: "/home/ubuntu/obs4mips"
+       schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
+       keywords: # TODO: May be important for data management and search for related data
+     docker:         # Docker parameters for specific workflow
+       docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is the first value in the list, this means that the end user can select any image 
+        'shambakey1/ocw_cordex' :
+         registery: "https://hub.docker.com/r/shambakey1/ocw_cordex/"
+       docker_rep: "any"
+       ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
+   AST:
+     name: ast
+     mode: 0o777
+     exist_ok: True  # If true, use alrady existing folder if one does
+     terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
+     data_dir: # Result from data management layer
+     docker:         # Docker parameters for this specific workflow
+       docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is the first value in the list, this means that the end user can select any image 
+        'shambakey1/python' : 
+         registery: "https://hub.docker.com/r/shambakey1/python/"
+       docker_rep: "any"
+       ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
+   SHBE:
+     name: shbe
+     mode: 0o777
+     exist_ok: True  # If true, use alrady existing folder if one does
+     terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
+     data_dir: # Result from data management layer
+      data_CMU: 
+       path: "/home/ubuntu/data_CMU"
+       schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
+       keywords: # TODO: May be important for data management and search for related data
+     docker:         # Docker parameters for this specific workflow
+       docker_img: 
+        'shambakey1/python' : 
+         registery: "https://hub.docker.com/r/shambakey1/python/"
+       docker_rep: "any"
+       ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
