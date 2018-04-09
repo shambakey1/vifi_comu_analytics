@@ -532,6 +532,39 @@ class vifi(object):
 			key_obj=user_s3_conf['path']+"/"+f_res
 			s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 			
+	def unpackCompressedRequests(self,set:str,conf:dict=None)->None:
+		''' Unpack any compressed requests under specified path
+		@param conf: VIFI configuration file
+		@type conf: dict
+		@param set: Set (i.e., (sub)workflow)
+		@type comp_types: List[str]  
+		'''
+		
+		from zipfile import ZipFile
+		
+		if not conf:
+			if not self.vifi_conf:
+				print('Error: No VIFI configuration exist')
+			else:
+				conf=self.vifi_conf
+		
+		# Determine path to compressed requests under specified set
+		comp_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
+							conf['domains']['script_path_in']['name'])
+		
+		# List all requests under current set
+		reqs=os.listdir(comp_path)
+		
+		# Unpack compressed files only, then remove the compressed file after extraction
+		for req in reqs:
+			# Unpack file according to file extension
+			if req.endswith('.zip'):
+				with ZipFile(req) as f:
+					f.extractall()
+			
+				# Remove compressed file after extraction
+				os.remove(req)		
+		
 	def vifiRun(self,sets:List[str]=None,request_in:list[str]=None,conf:dict=None)->None:
 		''' VIFI request analysis and processing procedure for list of sets (i.e., (sub)workflows). The default 
 		processing behavior of 'vifiRun' is to keep incoming requests at specific locations, then run them as \
@@ -740,8 +773,10 @@ class vifi(object):
 	if __name__ == '__main__':
 		import time
 		
+		set='JPL_cordex'
 		s=vifi('vifi_config.yaml')
 		while(True):
-			s.vifiRun(['JPL_cordex'])
+			s.unpackCompressedRequests(set)
+			s.vifiRun([set])
 			time.sleep(1)
 		

@@ -28,6 +28,10 @@ Prometheus_parameters:
   
 ############ LOGGING PARAMETERS #################
 vifi_log: '/f/personal/postdoc/uncc/vifi/test/vifi_log.out' 
+
+########## SUPPORTED COMPRESSED TYPES ############
+compressed: 
+- zip
   
 ######## GENERAL PARAMETERS (PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES FOR EACH DOMAIN) #################
 domains: 
