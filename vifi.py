@@ -563,7 +563,7 @@ class vifi():
 				# Unpack file according to file extension
 				if req.endswith('.zip'):
 					with ZipFile(os.path.join(comp_path,req)) as f:
-						f.extractall()
+						f.extractall(comp_path)
 				
 					# Remove compressed file after extraction
 					os.remove(req)		
