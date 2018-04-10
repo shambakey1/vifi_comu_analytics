@@ -11,7 +11,7 @@ from typing import List
 from builtins import str, int
 from genericpath import isfile
 
-class vifi(object):
+class vifi():
 	'''
 	VIFI class containing different methods for VIFI administrators to load configurations, initialize VIFI Nodes, 
 	and process incoming requests
@@ -778,6 +778,6 @@ class vifi(object):
 		s=vifi('vifi_config.yaml')
 		while(True):
 			s.unpackCompressedRequests(set)
-			s.vifiRun([set])
+			s.vifiRun(sets=[set])
 			time.sleep(1)
 		
