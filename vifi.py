@@ -661,7 +661,7 @@ class vifi():
 							for ser in conf_in['services']:
 								
 								# Check required service name uniqueness (Just a precaution, as the request name- which should also be the service name- must be unique when the user made the request)
-								service_name=self.checkSerName(ser)
+								service_name=self.checkSerName(ser=ser,client=client)
 								if not service_name:
 									f_log.write("Error: Another service (i.e., request) with the same name, "+request+", exists at "+str(time.time())+"\n")
 									#TODO: move to failed. In the future, another service name should be generated if desired
