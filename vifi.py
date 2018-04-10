@@ -35,8 +35,7 @@ class vifi():
 			self.loadVIFIConf(vifi_conf_f)
 		else:
 			print("Error: No VIFI configuration file has been passed to this instance")
-		
-		
+			sys.exit()
 		
 	def load_conf(self,infile:str)->dict:
 		''' Loads user configuration file. "infile" is in JSON format
