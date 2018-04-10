@@ -67,7 +67,7 @@ class vifi():
 		'''
 	
 		try:
-			for key,val in conf_in_total:
+			for key,val in conf_in_total.items():
 				if val=='f' and not os.path.isfile(os.path.join(in_file_root_loc,key)):	# Check file
 					print('Error: Could not find user required input file '+os.path.join(in_file_root_loc,key))
 					return False
