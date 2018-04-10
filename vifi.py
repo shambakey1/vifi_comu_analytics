@@ -565,7 +565,7 @@ class vifi():
 				# Remove compressed file after extraction
 				os.remove(req)		
 		
-	def vifiRun(self,sets:List[str]=None,request_in:list[str]=None,conf:dict=None)->None:
+	def vifiRun(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)->None:
 		''' VIFI request analysis and processing procedure for list of sets (i.e., (sub)workflows). The default 
 		processing behavior of 'vifiRun' is to keep incoming requests at specific locations, then run them as \
 		containerized applications in container cluster (e.g., Docker swarm). The default processing behavior can \
