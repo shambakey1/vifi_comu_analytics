@@ -562,7 +562,7 @@ class vifi():
 			for req in reqs:
 				# Unpack file according to file extension
 				if req.endswith('.zip'):
-					with ZipFile(req) as f:
+					with ZipFile(os.path.join(comp_path,req)) as f:
 						f.extractall()
 				
 					# Remove compressed file after extraction
@@ -780,7 +780,7 @@ class vifi():
 		set='JPL_cordex'
 		s=vifi('vifi_config.yaml')
 		while(True):
-			s.unpackCompressedRequests(set)
+			s.unpackCompressedRequests(sets=[set])
 			s.vifiRun(sets=[set])
 			time.sleep(1)
 		
