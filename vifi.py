@@ -25,7 +25,6 @@ class vifi():
 		'''
 		
 		# Initialize VIFI instance parameters
-		global vifi_insts
 		self.vifi_conf_f=''	# Path to VIFI configuration file for current VIFI instance
 		self.vifi_conf={}	# VIFI configuration dictionary for current VIFI instance
 		self.ser_list=[]	# List of created services by current VIFI Node
@@ -34,9 +33,6 @@ class vifi():
 		# Load VIFI configuration file
 		if vifi_conf_f and os.path.isfile(vifi_conf_f):
 			self.loadVIFIConf(vifi_conf_f)
-			
-			# Add created VIFI instance to global list of VIFI instances
-			vifi_insts[self.id]=self
 		else:
 			print("Error: No VIFI configuration file has been passed to this instance")
 		
@@ -780,7 +776,7 @@ class vifi():
 		
 	if __name__ == '__main__':
 		import time
-		from vifi import vifi
+		from .vifi import vifi
 		
 		set='JPL_cordex'
 		s=vifi('vifi_config.yaml')
