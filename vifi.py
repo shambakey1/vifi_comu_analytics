@@ -532,38 +532,46 @@ class vifi():
 			key_obj=user_s3_conf['path']+"/"+f_res
 			s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 			
-	def unpackCompressedRequests(self,set:str,conf:dict=None)->None:
-		''' Unpack any compressed requests under specified path
+	def unpackCompressedRequests(self,conf:dict=None,sets:List[str]=None)->None:
+		''' Unpack any compressed requests under specified set(s) (i.e., (sub)workflow(s))
 		@param conf: VIFI configuration file
 		@type conf: dict
-		@param set: Set (i.e., (sub)workflow)
-		@type comp_types: List[str]  
+		@param sets: List of required sets (i.e., (sub)workflow(s)) to unpack incoming requests. Defaults to all sets if None is specified
+		@type sets: List[str]  
 		'''
 		
 		from zipfile import ZipFile
 		
+		# Either load input VIFI configuration file, or load internal VIFI configuration file
 		if not conf:
 			if not self.vifi_conf:
 				print('Error: No VIFI configuration exist')
+				sys.exit()
 			else:
 				conf=self.vifi_conf
-		
-		# Determine path to compressed requests under specified set
-		comp_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
-							conf['domains']['script_path_in']['name'])
-		
-		# List all requests under current set
-		reqs=os.listdir(comp_path)
-		
-		# Unpack compressed files only, then remove the compressed file after extraction
-		for req in reqs:
-			# Unpack file according to file extension
-			if req.endswith('.zip'):
-				with ZipFile(req) as f:
-					f.extractall()
+				
+		# If input sets are not specified, then load all sets in VIFI configuration if any
+		if not sets:
+			sets=conf['domains']['sets']
 			
-				# Remove compressed file after extraction
-				os.remove(req)		
+		# Traverse through all sets
+		for set in sets:
+			# Determine path to compressed requests under specified set
+			comp_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
+								conf['domains']['script_path_in']['name'])
+			
+			# List all requests under current set
+			reqs=os.listdir(comp_path)
+			
+			# Unpack compressed files only, then remove the compressed file after extraction
+			for req in reqs:
+				# Unpack file according to file extension
+				if req.endswith('.zip'):
+					with ZipFile(req) as f:
+						f.extractall()
+				
+					# Remove compressed file after extraction
+					os.remove(req)		
 		
 	def vifiRun(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)->None:
 		''' VIFI request analysis and processing procedure for list of sets (i.e., (sub)workflows). The default 
