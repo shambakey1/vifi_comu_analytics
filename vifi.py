@@ -772,6 +772,7 @@ class vifi(object):
 		
 	if __name__ == '__main__':
 		import time
+		from vifi import vifi
 		
 		set='JPL_cordex'
 		s=vifi('vifi_config.yaml')
