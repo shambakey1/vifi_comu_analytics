@@ -566,7 +566,7 @@ class vifi():
 						f.extractall(comp_path)
 				
 					# Remove compressed file after extraction
-					os.remove(req)		
+					os.remove(os.path.join(comp_path,req))		
 		
 	def vifiRun(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)->None:
 		''' VIFI request analysis and processing procedure for list of sets (i.e., (sub)workflows). The default 
