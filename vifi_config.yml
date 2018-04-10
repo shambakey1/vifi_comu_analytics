@@ -1,6 +1,6 @@
 user_conf:  # Key names used in any conf.json file
   ############ GENERAL PARAMETERS ###############
-  conf_file_name: conf.json  # Name of configuration file that should exist in any user request
+  conf_file_name: conf.yml  # Name of configuration file that should exist in any user request
   userid_kye: userid       # Key for User ID
   total_inputs_key: total_inputs     # Key for all uploaded user input files and folders to this server
   main_scripts_key: main_scripts     # Key for user scripts that will execute inside docker swarm. Main scripts are also included in the total_inputs

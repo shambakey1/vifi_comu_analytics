@@ -2,7 +2,7 @@
 #TODO: Currently, this file is created manually. In the future, a function can be used to generate this file \
 # to generate some parameters appropriately (e.g., service name can be unique for this user)
 
-userid: jpl_cordex_1           # User name should be a universal unique name (e.g., the username at institution)
+userid: jpl_cordex_sg1           # User name should be a universal unique name (e.g., the username at institution)
 services:                    # Group of required services for current request. Thus, a single request (to a specified (sub)workflow) consists of zero or more services. The services can be dependent or independent 
  ocw-cordex_stg1:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
