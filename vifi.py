@@ -264,7 +264,7 @@ class vifi():
 			else:
 				print(e)	
 			
-	def checkServiceComplete(self,client:docker.client.DockerClient,service_id:str,task_num_in:int,ttl:int=300)->bool:
+	def checkServiceComplete(self,client:docker.client.DockerClient,service_name:str,task_num_in:int,ttl:int=300)->bool:
 		''' Check if specified Docker service has finished currently or within specified time threshold
 		@param client: Client connection to Docker Engine
 		@type client: client connection
@@ -281,7 +281,7 @@ class vifi():
 		### Checks if each task in task_num has completed
 		while ttl:
 			try:
-				ser=client.services.get(service_id)
+				ser=client.services.get(service_name)
 				task_num=task_num_in
 				for t in ser.tasks():
 					if t["Status"]["State"]=="complete":
@@ -290,7 +290,7 @@ class vifi():
 					return True
 			except:
 				ttl-=1
-				time.sleep(1)
+			time.sleep(1)
 		return False
 	
 	def checkServiceImage(self,docker_img_set:dict,user_img:str)-> str:
@@ -441,7 +441,7 @@ class vifi():
 		if dep_servs:
 			for ser in dep_servs:
 				# First, check service existence
-				if not client.services.get(ser):
+				if ser not in [x.name for x in client.services.list()]:
 					return False
 				
 				# Check if service is complete. Note that we do not have to wait for the previous service ttl to check
@@ -486,7 +486,7 @@ class vifi():
 		@rtype: str
 		'''
 		
-		if client.services.get(ser):
+		if ser in [x.name for x in client.services.list()]:
 			return None
 		else:
 			return ser
@@ -510,7 +510,11 @@ class vifi():
 		
 		#TODO: Currently, this function either directly removes the service, or leaves it indefinitely. In the future, there should be a separate thread (such that other requests are not delayed until the specified service is removed) to monitor services and remove them according to specified termination time.
 		if term_time != 'inf':
-			client.services.get(ser_name).remove()
+			try:
+				client.services.get(ser_name).remove()
+			except Exception as e:
+				print('Error: Could not remove service')
+				print(e.message)
 	
 	def s3Transfer(self,user_s3_conf:dict,data_path:str)->None:
 		''' Transfer files to S3 bucket
