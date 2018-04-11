@@ -691,7 +691,7 @@ class vifi():
 									continue
 								
 								# Check all preceding services are complete, or the preceding service(s) reached the required status, before running the current service
-								if not self.checkSerDep(client=client, ser_name=service_name, user_conf=conf_in)
+								if not self.checkSerDep(client=client, ser_name=service_name, user_conf=conf_in):
 									f_log.write("Error: Some or all preceding services are missed for "+request+" at "+str(time.time())+"\n")
 									#TODO: if this situation continues, then move to failed
 									continue
