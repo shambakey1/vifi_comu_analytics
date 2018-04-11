@@ -5,7 +5,7 @@ Created on Mar 29, 2018
 @contact: shambakey1@gmail.com
 '''
 
-import yaml, time, os, sys, shutil, json, uuid, requests, docker
+import yaml, time, os, sys, shutil, json, uuid, requests, docker, traceback
 import docker.models
 from typing import List
 from builtins import str, int
@@ -421,12 +421,14 @@ class vifi():
 								{'condition':'on-failure'},mounts=mnts,workdir=work_dir,env=envs,image=docker_img,\
 								command=docker_cmd+' '+script,args=user_args)
 		except Exception as e:
-			result='Error: "createUserService" function raised the following error: '+e.message
+			result='Error: "createUserService" function raised the following error: '+e
 			if flog:
 				with open(flog,'a') as f:
 					f.write(result)
+					traceback.print_exc(file=f)
 			else:
 				print(result)
+				traceback.print_exc()
 		
 		
 	def checkSerDep(self,client:docker.client.DockerClient,ser_name:str,user_conf:dict)->bool:
