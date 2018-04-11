@@ -724,7 +724,7 @@ class vifi():
 									self.createUserService(client=client, service_name=service_name, docker_rep=docker_rep, \
 													script_path_in=script_path_in, request=request, \
 													container_dir=conf_in['services'][ser]['container_dir'], data_dir=data_dir, \
-													user_data_dir=conf_in['services'][ser]['data'], work_dir=conf_in['services'][ser]['work_dir'], f=conf_in['services'][ser]['script'], \
+													user_data_dir=conf_in['services'][ser]['data'], work_dir=conf_in['services'][ser]['work_dir'], script=conf_in['services'][ser]['script'], \
 													docker_img=docker_img, docker_cmd=conf_in['services'][ser]['cmd_eng'], \
 													user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_check_thr)
 									self.ser_list.append(service_name)
