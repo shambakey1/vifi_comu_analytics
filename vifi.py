@@ -420,8 +420,8 @@ class vifi():
 			return client.services.create(name=service_name,mode={'Replicated':{'Replicas':docker_rep}},restart_policy=\
 								{'condition':'on-failure'},mounts=mnts,workdir=work_dir,env=envs,image=docker_img,\
 								command=docker_cmd+' '+script,args=user_args)
-		except Exception as e:
-			result='Error: "createUserService" function raised the following error: '+e
+		except:
+			result='Error: "createUserService" function raised the following error: '
 			if flog:
 				with open(flog,'a') as f:
 					f.write(result)
@@ -732,20 +732,21 @@ class vifi():
 								# Create the required containerized user service, add service name to internal list of services, and log the created service
 								#TOOO: Currently, the created service is appended to an internal list of service. In the future, we may need to keep track of more parameters related to the created service (e.g., user name, request path, ... etc)
 								try:
-									self.createUserService(client=client, service_name=service_name, docker_rep=docker_rep, \
+									if self.createUserService(client=client, service_name=service_name, docker_rep=docker_rep, \
 													script_path_in=script_path_in, request=request, \
 													container_dir=conf_in['services'][ser]['container_dir'], data_dir=data_dir, \
 													user_data_dir=conf_in['services'][ser]['data'], work_dir=conf_in['services'][ser]['work_dir'], script=conf_in['services'][ser]['script'], \
 													docker_img=docker_img, docker_cmd=conf_in['services'][ser]['cmd_eng'], \
-													user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_check_thr)
-									self.ser_list.append(service_name)
-									f_log.write(repr(time.time())+":"+str(client.services.get(service_name))+"\n")	# Log the command
-								except Exception as e:
-									f_log.write("Error: occurred while launching service "+service_name+": "+ str(sys.exc_info())+"\n")
-									if hasattr(e, 'message'):
-										print(e.message)
+													user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_check_thr):
+										self.ser_list.append(service_name)
+										f_log.write(repr(time.time())+":"+str(client.services.get(service_name))+"\n")	# Log the command
 									else:
-										print(e)
+										f_log.write("Error: Could not create service "+service_name+": \n")
+										traceback.print_exc(file=f_log)
+									
+								except:
+									f_log.write("Error: occurred while launching service "+service_name+": \n")
+									traceback.print_exc(file=f_log)
 										
 								# Check completeness of created service to transfer results (if required) and to end service
 								if self.checkServiceComplete(client,service_name,int(docker_rep),int(ser_check_thr)):
