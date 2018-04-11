@@ -392,7 +392,7 @@ class vifi():
 		@rtype: docker.models.services.Service    
 		'''
 		
-		envs=['MY_TASK_ID={{.Task.Name}}','SCRIPTFILE='+script,'ttl='+ttl]	# Initialize list of environment variables
+		envs=['MY_TASK_ID={{.Task.Name}}','SCRIPTFILE='+script,'ttl='+str(ttl)]	# Initialize list of environment variables
 		if user_envs:	# Append user environment variables if any
 			envs.extend(user_envs)
 		
