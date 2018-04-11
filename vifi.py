@@ -388,8 +388,8 @@ class vifi():
 		@type user_envs: List[str]
 		@param user_mnts: User list of required mounts inside created service tasks
 		@type user_mnts: List[str]
-		@param flog: Path log file to record raised events
-		@type flog: str  
+		@param flog: log file handler to record raised events
+		@type flog: file pointer
 		@return: Required service
 		@rtype: docker.models.services.Service    
 		'''
@@ -406,7 +406,7 @@ class vifi():
 				
 			# Mount the data directories
 			for x in user_data_dir.keys():	# mount data physical path at VIFI Node to user specified paths
-				mnts.append(data_dir[x]['path']+":"+user_data_dir[x])
+				mnts.append(data_dir[x]['path']+":"+user_data_dir[x]['container_data_path'])
 				
 			# Append any additional user mounts (which should be in the form source:target:options) relative to the user request directory 
 			if user_mnts:
@@ -423,9 +423,8 @@ class vifi():
 		except:
 			result='Error: "createUserService" function raised the following error: '
 			if flog:
-				with open(flog,'a') as f:
-					f.write(result)
-					traceback.print_exc(file=f)
+				flog.write(result)
+				traceback.print_exc(file=f)
 			else:
 				print(result)
 				traceback.print_exc()
