@@ -353,7 +353,7 @@ class vifi():
 			
 	def createUserService(self,client:docker.client.DockerClient,service_name:str,docker_rep:int,script_path_in:str,request:str,container_dir:str,\
 						data_dir:dict,user_data_dir:dict,work_dir:str,script:str,docker_img:str,docker_cmd:str,ttl,
-						user_args:List[str]=[],user_envs:List[str]=None,user_mnts:List[str]=None)->docker.models.services.Service:
+						user_args:List[str]=[],user_envs:List[str]=None,user_mnts:List[str]=None,flog:str=None)->docker.models.services.Service:
 		''' Create request service with required configurations (e.g., required mounts, environment variables, command, 
 		arguments ... etc). Currently, service is created as docker service
 		@param client: Client connection to docker enginer
@@ -388,36 +388,45 @@ class vifi():
 		@type user_envs: List[str]
 		@param user_mnts: User list of required mounts inside created service tasks
 		@type user_mnts: List[str]
+		@param flog: Path log file to record raised events
+		@type flog: str  
 		@return: Required service
 		@rtype: docker.models.services.Service    
 		'''
-		
-		envs=['MY_TASK_ID={{.Task.Name}}','SCRIPTFILE='+script,'ttl='+str(ttl)]	# Initialize list of environment variables
-		if user_envs:	# Append user environment variables if any
-			envs.extend(user_envs)
-		
-		# Mount the user request folder to the specified container_dir if any
-		if container_dir:
-			mnts=[os.path.join(script_path_in,request)+":"+container_dir]	# Initialize list of mounts for user's request
-		else:
-			mnts=[]
+		try:
+			envs=['MY_TASK_ID={{.Task.Name}}','SCRIPTFILE='+script,'ttl='+str(ttl)]	# Initialize list of environment variables
+			if user_envs:	# Append user environment variables if any
+				envs.extend(user_envs)
 			
-		# Mount the data directories
-		for x in user_data_dir.keys():	# mount data physical path at VIFI Node to user specified paths
-			mnts.append(data_dir[x]['path']+":"+user_data_dir[x])
-			
-		# Append any additional user mounts (which should be in the form source:target:options) relative to the user request directory 
-		if user_mnts:
-			for x in user_mnts:
-				if x[0]=='/':	# User mount should be relative to the user request directory. Thus, any 'source' should not start with '/'
-					x=x[1:]
-				x=os.path.join(script_path_in,request,x)
-				mnts.append(x)
-			
-		# Now, create the required (docker) service, and return it
-		return client.services.create(name=service_name,mode={'Replicated':{'Replicas':docker_rep}},restart_policy=\
-							{'condition':'on-failure'},mounts=mnts,workdir=work_dir,env=envs,image=docker_img,\
-							command=docker_cmd+' '+script,args=user_args)
+			# Mount the user request folder to the specified container_dir if any
+			if container_dir:
+				mnts=[os.path.join(script_path_in,request)+":"+container_dir]	# Initialize list of mounts for user's request
+			else:
+				mnts=[]
+				
+			# Mount the data directories
+			for x in user_data_dir.keys():	# mount data physical path at VIFI Node to user specified paths
+				mnts.append(data_dir[x]['path']+":"+user_data_dir[x])
+				
+			# Append any additional user mounts (which should be in the form source:target:options) relative to the user request directory 
+			if user_mnts:
+				for x in user_mnts:
+					if x[0]=='/':	# User mount should be relative to the user request directory. Thus, any 'source' should not start with '/'
+						x=x[1:]
+					x=os.path.join(script_path_in,request,x)
+					mnts.append(x)
+				
+			# Now, create the required (docker) service, and return it
+			return client.services.create(name=service_name,mode={'Replicated':{'Replicas':docker_rep}},restart_policy=\
+								{'condition':'on-failure'},mounts=mnts,workdir=work_dir,env=envs,image=docker_img,\
+								command=docker_cmd+' '+script,args=user_args)
+		except Exception as e:
+			result='Error: "createUserService" function raised the following error: '+e.message
+			if flog:
+				with open(flog,'a') as f:
+					f.write(result)
+			else:
+				print(result)
 		
 		
 	def checkSerDep(self,client:docker.client.DockerClient,ser_name:str,user_conf:dict)->bool:
