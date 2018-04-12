@@ -950,10 +950,11 @@ class vifi():
 									# Move finished service to successful requests path
 									shutil.move(script_processed,script_finished)
 									
-									# Copy required results to specified destinations
-									for f_res in conf_in['services'][ser]['results']:
-										# Local copy of required final results (Just in case they are needed in the future)
-										shutil.copy(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request))
+									# Copy required results, if any, to specified destinations
+									if conf_in['services'][ser]['results']:
+										for f_res in conf_in['services'][ser]['results']:
+											# Local copy of required final results (Just in case they are needed in the future)
+											shutil.copy(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request))
 										
 									# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
 									if conf_in['services'][ser]['s3']['transfer'] and conf_in['services'][ser]['s3']['bucket']:	  # s3_transfer is True and s3_buc has some value
