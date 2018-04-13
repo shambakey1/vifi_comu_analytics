@@ -954,7 +954,12 @@ class vifi():
 									if conf_in['services'][ser]['results']:
 										for f_res in conf_in['services'][ser]['results']:
 											# Local copy of required final results (Just in case they are needed in the future)
-											shutil.copy(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request))
+											if os.path.isfile(os.path.join(script_finished,f_res)):
+												shutil.copy(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request))
+											elif os.path.isdir(os.path.join(script_finished,f_res)):
+												shutil.copytree(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request,f_res))
+											else:
+												flog.write("Failed to locally copy result "+os.path.join(script_finished,f_res)+" at "+repr(time.time())+"\n")
 										
 									# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
 									if conf_in['services'][ser]['s3']['transfer'] and conf_in['services'][ser]['s3']['bucket']:	  # s3_transfer is True and s3_buc has some value
