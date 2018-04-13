@@ -19,7 +19,7 @@ services:                    # Group of required services for current request. T
   - NAM-44
   - "/data/output/CORDEX/analysis"
   - "/data/input/obs4mips"
-  - "'/data/input/CORDEX/NAM-44/*'"
+  - "/data/input/CORDEX/NAM-44/*"
   tasks: 1                   # Required number of tasks for the created service
   data:                      # Required data for the service
    NAM-44:                     # 'key' is the data 'key' as retrived by data management layer
