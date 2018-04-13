@@ -35,6 +35,8 @@ services:                    # Group of required services for current request. T
   - cordex1.py:/usr/local/climate/RCMES/CORDEX/cordex1.py
   - nam_out:/data/output/CORDEX/analysis
   results:                   # List of result files of the service
+  - nam_out
+  - config_files.csv
   ser_check_thr: 300         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
     transfer: False
