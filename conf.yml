@@ -1,10 +1,11 @@
 ################ SAMPLE VIFI USER CONFIGURATION FILE ###################
 #TODO: Currently, this file is created manually. In the future, a function can be used to generate this file \
-# to generate some parameters appropriately (e.g., service name can be unique for this user)
+# to generate some parameters appropriately (e.g., service name can be unique for this user). Also, a GUI can be used \
+# to generate this file
 
 userid: jpl_cordex_sg1           # User name should be a universal unique name (e.g., the username at institution)
 services:                    # Group of required services for current request. Thus, a single request (to a specified (sub)workflow) consists of zero or more services. The services can be dependent or independent 
- ocw-cordex_stg1:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
+ ocw_cordex_stg1:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
    files:                    # Lisf of files/directories that should exist for current service to run including the @script. 'f' stands for 'file', while 'd' stands for 'directory'. All files/directories are relative to user request location
     cordex1.py: f
@@ -14,7 +15,7 @@ services:                    # Group of required services for current request. T
   script: cordex1.py # The user script to run inside created service. Each service has, at most, one script. If the user needs to run multiple files, then these files should be combined into a single script
   image: "shambakey1/ocw_cordex"    # The image (e.g., docker image). Each service has only one image
   cmd_eng: python            # Command to run user's script
-  args:                      # Lis of arguments to be passed for user's script
+  args:                      # List of arguments to be passed for user's script
   - NAM-44
   - "/data/output/CORDEX/analysis"
   - "/data/input/obs4mips"
