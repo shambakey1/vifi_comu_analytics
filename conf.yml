@@ -66,6 +66,7 @@ services:                    # Group of required services for current request. T
   container_dir:      # Path to map required user's files into container (i.e., the created 'request' folder for this user will be mapped to the value of this parameter)
   work_dir:           # Work directory inside container
   envs:                      # List of user specified environment variables (in the form key=val) to be used within the containerized application
+  - 't={{.Task.Slot}}'
   mnts:                      # List of user specified mounts (in the form source:target:options) to be used within the containerized application
   - cordex2.py:/usr/local/climate/RCMES/CORDEX/cordex2.py
   - nam_out:/data/output/CORDEX/analysis

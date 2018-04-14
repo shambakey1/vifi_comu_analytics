@@ -869,6 +869,12 @@ class vifi():
 								#TODO: if this situation continues, then move to failed
 								continue
 							
+							# Create a 'results' folder in current request (if not already exists) to keep output files. Otherwise, create a 'results' folder with new ID
+							req_res_path_per_request=conf['domains']['req_res_path_per_request']['name']
+							if os.path.exists(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request)):
+								req_res_path_per_request=req_res_path_per_request+"_"+str(uuid.uuid1())
+							os.mkdir(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request))	# To keep only required result files to be further processed or transfered.
+							
 							# Traverse all services of the current request
 							for ser in conf_in['services']:
 								
@@ -922,12 +928,6 @@ class vifi():
 								ser_check_thr=self.setServiceThreshold(ser_check_thr, conf_in['services'][ser]['ser_check_thr'])	# set ttl to allowed value
 								if ser_check_thr!=conf_in['services'][ser]['ser_check_thr']:
 									flog.write("Warning: Service check threshold for request "+str(request)+" will be "+str(ser_check_thr)+" at "+str(time.time())+"\n")
-								
-								# Create a 'results' folder in current request (if not already exists) to keep output files. Otherwise, create a 'results' folder with new ID
-								req_res_path_per_request=conf['domains']['req_res_path_per_request']['name']
-								if os.path.exists(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request)):
-									req_res_path_per_request=req_res_path_per_request+"_"+str(uuid.uuid1())
-								os.mkdir(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request))	# To keep only required result files to be further processed or transfered.
 								
 								# Create the required containerized user service, add service name to internal list of services, and log the created service
 								#TOOO: Currently, the created service is appended to an internal list of service. In the future, we may need to keep track of more parameters related to the created service (e.g., user name, request path, ... etc)
