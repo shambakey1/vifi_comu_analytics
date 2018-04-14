@@ -853,6 +853,9 @@ class vifi():
 						### LOOP THROUGH REQUESTS AND PROCESS THEM (CURENTLY PROCESSING LOCATION IS NFS SHARED) ###
 						for request in request_in:
 							
+							# Initialize final services status to check status of all underlying services for current request
+							final_req_stat=True
+							
 							# Initialize path parameters for current request
 							script_processed=os.path.join(script_path_in,request)
 							script_finished=os.path.join(script_path_out,request)
@@ -869,25 +872,28 @@ class vifi():
 							# Traverse all services of the current request
 							for ser in conf_in['services']:
 								
+								# Initialize temporary service status to record status of created service 
+								tmp_ser_stat=False
+								
 								# Check required service name uniqueness (Just a precaution, as the request name- which should also be the service name- must be unique when the user made the request)
 								service_name=self.checkSerName(ser=ser,client=client)
 								if not service_name:
 									flog.write("Error: Another service (i.e., request) with the same name, "+request+", exists at "+str(time.time())+"\n")
 									#TODO: move to failed. In the future, another service name should be generated if desired
-									continue
+									break
 								
 								# Check that user required images are allowed by VIFI Node
 								docker_img=self.checkServiceImage(conf['domains']['sets'][set]['docker']['docker_img'],conf_in['services'][ser]['image'])
 								if not docker_img:
 									flog.write('Error: Wrong container images specified by end-user. Please, select one from '+str(conf['domains']['sets'][set]['docker']['docker_img'])+" for request "+request+" at "+str(time.time())+"\n")
 									#TODO: move to failed
-									continue
+									break
 								
 								# Check all user required data can be mounted in user required mode (e.g., write mode)
 								if not self.checkDataOpt(conf,conf_in):
 									flog.write('Error: Wrong data mounting options specified by end-user for request '+request+" at "+str(time.time())+"\n")
 									#TODO: move to failed
-									continue
+									break
 								
 								# Check all files are satisfied for current service. Otherwise, move to the next service
 								if not self.checkInputFiles(os.path.join(script_path_in,request),conf_in['services'][ser]['dependencies']['files']):
@@ -945,10 +951,10 @@ class vifi():
 								# Check completeness of created service to transfer results (if required) and to end service
 								if self.checkServiceComplete(client,service_name,int(docker_rep),int(ser_check_thr)):
 									# Log completeness time
-									flog.write("FINISHED at "+repr(time.time())+"\n\n")
+									flog.write("Finished service "+service_name+" for request "+request+" at "+repr(time.time())+"\n\n")
 									
-									# Move finished service to successful requests path
-									shutil.move(script_processed,script_finished)
+									# Update service status and the request status
+									tmp_ser_stat=True
 									
 									# Copy required results, if any, to specified destinations
 									if conf_in['services'][ser]['results']:
@@ -960,21 +966,38 @@ class vifi():
 												shutil.copytree(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request,f_res))
 											else:
 												flog.write("Failed to locally copy result "+os.path.join(script_finished,f_res)+" at "+repr(time.time())+"\n")
+									
+									
+									# Delete service, if required, to release resource
+									try:
+										self.delService(client, service_name, str(conf['domains']['sets'][set]['terminate']))
+									except:
+										flog.write("Error: failed to delete service "+service_name+" at "+repr(time.time())+"\n")
+										continue
 										
 									# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
 									if conf_in['services'][ser]['s3']['transfer'] and conf_in['services'][ser]['s3']['bucket']:	  # s3_transfer is True and s3_buc has some value
 										self.s3Transfer(conf_in['services'][ser]['s3'], os.path.join(script_finished,req_res_path_per_request))
 										flog.write("Transfered to S3 bucket at "+repr(time.time())+"\n")
+										
 								else:
-									shutil.move(script_processed,script_failed)
-									flog.write("FAILED at "+repr(time.time())+"\n")
+									#TODO: If current service fails, then abort whole request. This behavior may need modifications in the future
+									flog.write("Failed service "+service_name+" for request "+request+" at "+repr(time.time())+"\n\n")
+									
+								# Update request status according to current service status, and abort request if any service fails
+								final_req_stat=final_req_stat and tmp_ser_stat
+								if not final_req_stat:
+									break
+							
+							# Move finished request to successful requests path, or to failed otherwise
+							if final_req_stat:
+								shutil.move(script_processed,script_finished)
+								flog.write("Request "+request+" finished at "+repr(time.time())+"\n")
+							else:
+								shutil.move(script_processed,script_failed)
+								flog.write("Request "+request+" FAILED at "+repr(time.time())+"\n")
 								
-								# Delete service, if required, to release resource
-								try:
-									self.delService(client, service_name, str(conf['domains']['sets'][set]['terminate']))
-								except:
-									flog.write("Error: failed to delete service "+service_name+" at "+repr(time.time())+"\n")
-									continue
+								
 				else:
 					print('Error: Specified set '+set+' does not exist')
 		except:

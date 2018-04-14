@@ -42,3 +42,38 @@ services:                    # Group of required services for current request. T
     transfer: False
     bucket: uncc-vifi-bucket
     path: ast
+ ocw_cordex_stg2:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
+  dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
+   files:                    # Lisf of files/directories that should exist for current service to run including the @script. 'f' stands for 'file', while 'd' stands for 'directory'. All files/directories are relative to user request location
+    cordex2.py: f
+    nam_out: d
+    nam_out/config_files.csv: f
+   ser:                      # List of preceeding services that should exist (or completed) before current service can run
+   fn:                       # TODO: List of functions that define 'precedence'
+  script: cordex2.py # The user script to run inside created service. Each service has, at most, one script. If the user needs to run multiple files, then these files should be combined into a single script
+  image: "shambakey1/ocw_cordex"    # The image (e.g., docker image). Each service has only one image
+  cmd_eng: python            # Command to run user's script
+  args:                      # List of arguments to be passed for user's script
+  - "/data/output/CORDEX/analysis/config_files.csv"
+  tasks: 1                   # Required number of tasks for the created service
+  data:                      # Required data for the service
+   NAM-44:                     # 'key' is the data 'key' as retrived by data management layer
+    container_data_path: "/data/input/CORDEX/NAM-44" # Data path insided the created service (e.g., data path inside docker container)
+    options:                 # Options like requesting data mounting in write mode in the created service
+   obs4mips: 
+    container_data_path: "/data/input/obs4mips" # Data path insided the created service (e.g., data path inside docker container)
+    options:                 # Options like requesting data mounting in write mode in the created service
+  container_dir:      # Path to map required user's files into container (i.e., the created 'request' folder for this user will be mapped to the value of this parameter)
+  work_dir:           # Work directory inside container
+  envs:                      # List of user specified environment variables (in the form key=val) to be used within the containerized application
+  mnts:                      # List of user specified mounts (in the form source:target:options) to be used within the containerized application
+  - cordex2.py:/usr/local/climate/RCMES/CORDEX/cordex2.py
+  - nam_out:/data/output/CORDEX/analysis
+  results:                   # List of result files of the service
+  - nam_out
+  ser_check_thr: 300         # Service check threshold (ttl) to check service completness
+  s3:                        # This section for S3 bucket transfer of specified results
+    transfer: False
+    bucket: uncc-vifi-bucket
+    path: ast
+    
