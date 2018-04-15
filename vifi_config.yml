@@ -27,7 +27,8 @@ Prometheus_parameters:
   write_metrics: False        # If set, write metrics values to @metrics_values_path/@metrics_values_f 
   
 ############ LOGGING PARAMETERS #################
-vifi_log: '/f/personal/postdoc/uncc/vifi/test/vifi_log.out' 
+vifi_log: '/f/personal/postdoc/uncc/vifi/test/vifi_log.out'
+req_log_path: '/home/ubuntu/requests/logs' 
 
 ########## SUPPORTED COMPRESSED TYPES ############
 compressed: 

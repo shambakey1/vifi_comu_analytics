@@ -35,13 +35,12 @@ services:                    # Group of required services for current request. T
   - cordex1.py:/usr/local/climate/RCMES/CORDEX/cordex1.py
   - nam_out:/data/output/CORDEX/analysis
   results:                   # List of result files of the service
-  - nam_out
-  - config_files.csv
   ser_check_thr: 300         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
     transfer: False
     bucket: uncc-vifi-bucket
-    path: ast
+    path: jpl_cordex
+ 
  ocw_cordex_stg2:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
    files:                    # Lisf of files/directories that should exist for current service to run including the @script. 'f' stands for 'file', while 'd' stands for 'directory'. All files/directories are relative to user request location
@@ -67,6 +66,7 @@ services:                    # Group of required services for current request. T
   work_dir:           # Work directory inside container
   envs:                      # List of user specified environment variables (in the form key=val) to be used within the containerized application
   - 't={{.Task.Slot}}'
+  - 'repl=1'
   mnts:                      # List of user specified mounts (in the form source:target:options) to be used within the containerized application
   - cordex2.py:/usr/local/climate/RCMES/CORDEX/cordex2.py
   - nam_out:/data/output/CORDEX/analysis
@@ -74,7 +74,7 @@ services:                    # Group of required services for current request. T
   - nam_out
   ser_check_thr: 300         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
-    transfer: False
+    transfer: True
     bucket: uncc-vifi-bucket
-    path: ast
+    path: jpl_cordex
     

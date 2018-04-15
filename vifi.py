@@ -28,7 +28,7 @@ class vifi():
 		# Initialize VIFI instance parameters
 		self.vifi_conf_f=''	# Path to VIFI configuration file for current VIFI instance
 		self.vifi_conf={}	# VIFI configuration dictionary for current VIFI instance
-		self.ser_list=[]	# List of created services by current VIFI Node
+		self.req_list={}	# Dictionary of created requests by current VIFI Node
 
 			
 		# Load VIFI configuration file
@@ -776,6 +776,20 @@ class vifi():
 			else:
 				print(result)
 				traceback.print_exc()
+				
+	def reqLog(self,req:str,req_log_path:str,req_log:dict)-> None:
+		''' Write request logs under specified path.
+		TODO: Currently, requests log is written as YAML file
+		@param req: Request name
+		@type req: str
+		@param req_log_path: Path to keep request log
+		@type req_log_path: str
+		@param req_log: Request log
+		@type req_log: dict   
+		'''
+		
+		with open(os.path.join(req_log_path,req,'.yml'),'a') as f:
+			yaml.dump(req_log,f)
 									
 		
 	def vifiRun(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)->None:
@@ -854,7 +868,10 @@ class vifi():
 						for request in request_in:
 							
 							# Initialize final services status to check status of all underlying services for current request
-							final_req_stat=True
+							final_req_stat=True	# True is a temporary value. It changes to False if any underlying service fails, or due to any other failure to process the request
+							
+							# Update the internal list of processed requests with 'status=start'
+							self.req_list[request]={'status':'start','start':str(time.time()),'services':{}}
 							
 							# Initialize path parameters for current request
 							script_processed=os.path.join(script_path_in,request)
@@ -929,7 +946,7 @@ class vifi():
 								if ser_check_thr!=conf_in['services'][ser]['ser_check_thr']:
 									flog.write("Warning: Service check threshold for request "+str(request)+" will be "+str(ser_check_thr)+" at "+str(time.time())+"\n")
 								
-								# Create the required containerized user service, add service name to internal list of services, and log the created service
+								# Create the required containerized user service, add service name to internal list of services of current request, and log the created service
 								#TOOO: Currently, the created service is appended to an internal list of service. In the future, we may need to keep track of more parameters related to the created service (e.g., user name, request path, ... etc)
 								try:
 									if self.createUserService(client=client, service_name=service_name, docker_rep=docker_rep, \
@@ -939,7 +956,9 @@ class vifi():
 													docker_img=docker_img, docker_cmd=conf_in['services'][ser]['cmd_eng'], \
 													user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_check_thr):
 										self.ser_list.append(service_name)
-										flog.write(repr(time.time())+":"+str(client.services.get(service_name))+"\n")	# Log the command
+										ser_start_time=time.time()	# Record service creation time
+										self.req_list[request]['services'][service_name]={'start':ser_start_time}
+										flog.write(repr(ser_start_time)+":"+str(client.services.get(service_name))+"\n")	# Log the command
 									else:
 										flog.write("Error: Could not create service "+service_name+": \n")
 										traceback.print_exc(file=flog)
@@ -951,7 +970,9 @@ class vifi():
 								# Check completeness of created service to transfer results (if required) and to end service
 								if self.checkServiceComplete(client,service_name,int(docker_rep),int(ser_check_thr)):
 									# Log completeness time
-									flog.write("Finished service "+service_name+" for request "+request+" at "+repr(time.time())+"\n\n")
+									ser_end_time=time.time()
+									self.req_list[request]['services'][service_name]={'end':ser_end_time}
+									flog.write("Finished service "+service_name+" for request "+request+" at "+repr(ser_end_time)+"\n\n")
 									
 									# Update service status and the request status
 									tmp_ser_stat=True
@@ -982,6 +1003,7 @@ class vifi():
 										
 								else:
 									#TODO: If current service fails, then abort whole request. This behavior may need modifications in the future
+									self.req_list[request]['services'][service_name]={'end':'failed'}
 									flog.write("Failed service "+service_name+" for request "+request+" at "+repr(time.time())+"\n\n")
 									
 								# Update request status according to current service status, and abort request if any service fails
@@ -989,13 +1011,22 @@ class vifi():
 								if not final_req_stat:
 									break
 							
-							# Move finished request to successful requests path, or to failed otherwise
+							# Record request end time and update internal request dictionary
+							req_end_time=time.time()
+							self.req_list[request]['end']=req_end_time
+							
+							# Move finished request to successful requests path, or to failed otherwise. Update internal requests dictionary accordingly
 							if final_req_stat:
 								shutil.move(script_processed,script_finished)
-								flog.write("Request "+request+" finished at "+repr(time.time())+"\n")
+								self.req_list[request]['status']='success'
+								flog.write("Request "+request+" finished at "+repr(req_end_time)+"\n")
 							else:
 								shutil.move(script_processed,script_failed)
-								flog.write("Request "+request+" FAILED at "+repr(time.time())+"\n")
+								self.req_list[request]['status']='fail'
+								flog.write("Request "+request+" FAILED at "+repr(req_end_time)+"\n")
+								
+							# Write the request log
+							self.reqLog(request, self.vifi_conf['req_log_path'], self.req_list[request])
 								
 								
 				else:
