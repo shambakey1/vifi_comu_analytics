@@ -962,7 +962,7 @@ class vifi():
 													docker_img=docker_img, docker_cmd=conf_in['services'][ser]['cmd_eng'], \
 													user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_ttl):
 										ser_start_time=time.time()	# Record service creation time
-										self.req_list[request]['services'][service_name]={}
+										self.req_list[request]['services'][service_name]={'tasks':task_no}
 										self.req_list[request]['services'][service_name]['start']=ser_start_time
 										flog.write(repr(ser_start_time)+":"+str(client.services.get(service_name))+"\n")	# Log the command
 									else:
