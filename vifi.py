@@ -1031,7 +1031,7 @@ class vifi():
 								flog.write("Request "+request+" FAILED at "+repr(req_end_time)+"\n")
 								
 							# Write the request log
-							self.reqLog(eq_log_path=self.vifi_conf['req_log_path'], req_log=self.req_list[request],req=request)
+							self.reqLog(req_log_path=self.vifi_conf['req_log_path'], req_log=self.req_list[request],req=request)
 							
 							# Clean the request log to save resource
 							self.req_list.clear()
