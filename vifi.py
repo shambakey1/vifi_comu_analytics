@@ -406,8 +406,6 @@ class vifi():
 		'''
 		
 		try:
-			print('docker_rep='+str(docker_rep))
-			print('user_rep='+str(user_rep))
 			def_rep=1	# Default number of service tasks
 			if str(docker_rep).lower()=='any':	# VIFI Node allows any number of service tasks
 				if user_rep:
@@ -441,8 +439,6 @@ class vifi():
 		'''
 		
 		try:
-			print('ser_check_thre='+str(ser_check_thr))
-			print('user_thr='+str(user_thr))
 			def_ttl=300	# Default ttl
 			if str(ser_check_thr).lower()=='any':
 				if user_thr:
@@ -966,7 +962,8 @@ class vifi():
 													docker_img=docker_img, docker_cmd=conf_in['services'][ser]['cmd_eng'], \
 													user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_ttl):
 										ser_start_time=time.time()	# Record service creation time
-										self.req_list[request]['services'][service_name]={'start':ser_start_time}
+										self.req_list[request]['services'][service_name]={}
+										self.req_list[request]['services'][service_name]['start']=ser_start_time
 										flog.write(repr(ser_start_time)+":"+str(client.services.get(service_name))+"\n")	# Log the command
 									else:
 										flog.write("Error: Could not create service "+service_name+": \n")
@@ -980,7 +977,7 @@ class vifi():
 								if self.checkServiceComplete(client,service_name,int(task_no),int(ser_ttl)):
 									# Log completeness time
 									ser_end_time=time.time()
-									self.req_list[request]['services'][service_name]={'end':ser_end_time}
+									self.req_list[request]['services'][service_name]['end']=ser_end_time
 									flog.write("Finished service "+service_name+" for request "+request+" at "+repr(ser_end_time)+"\n\n")
 									
 									# Update service status and the request status
