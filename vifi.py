@@ -1027,6 +1027,9 @@ class vifi():
 								
 							# Write the request log
 							self.reqLog(request, self.vifi_conf['req_log_path'], self.req_list[request])
+							
+							# Clean the request log to save resource
+							self.req_list.clear()
 								
 								
 				else:
