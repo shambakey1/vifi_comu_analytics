@@ -393,7 +393,7 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
-	def setServiceNumber(self,docker_rep:str,user_rep:int,flog:TextIOWrapper=None)->int:
+	def setServiceNumber(self,docker_rep:str,user_rep:int=None,flog:TextIOWrapper=None)->int:
 		''' Specify number of deployed tasks for user's request according to VIFI Node specifications and user's requirements
 		@param docker_rep: Number of service tasks as specified by VIFI Node. If 'any', then VIFI Node allows any number of service tasks
 		@type docker_rep: str
@@ -777,18 +777,24 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 				
-	def reqLog(self,req:str,req_log_path:str,req_log:dict)-> None:
+	def reqLog(self,req_log_path:str,req_log:dict,req:str='general_log')-> None:
 		''' Write request logs under specified path.
-		TODO: Currently, requests log is written as YAML file
-		@param req: Request name
-		@type req: str
+		TODO: Currently, request log is written as YAML file
 		@param req_log_path: Path to keep request log
 		@type req_log_path: str
 		@param req_log: Request log
-		@type req_log: dict   
+		@type req_log: dict
+		@param req: Request name. Defaults to 'general_log' if not specified
+		@type req: str   
 		'''
 		
-		with open(os.path.join(req_log_path,req,'.yml'),'a') as f:
+		# Create log directory if not exists
+		os.makedirs(req_log_path,exist_ok=True)
+		
+		# Write request log to created log file. Log file is created if not already exists
+		if not (req.endswith('.yml') or req.endswith('.yaml')):
+			req=req+".yml"
+		with open(os.path.join(req_log_path,req),'a') as f:
 			yaml.dump(req_log,f)
 									
 		
@@ -937,9 +943,9 @@ class vifi():
 									continue
 								
 								# Check available task number for current service (VIFI Node can limit concurrent number of running tasks for one service)
-								docker_rep=self.setServiceNumber(docker_rep, conf_in['services'][ser]['tasks'])	# set number of service tasks to allowed number
+								docker_rep=self.setServiceNumber(docker_rep=docker_rep, user_rep=conf_in['services'][ser]['tasks'])	# set number of service tasks to allowed number
 								if docker_rep!=conf_in['services'][ser]['tasks']:
-									flog.write("Warning: Number of tasks for request "+str(request)+" will be "+str(docker_rep)+" at "+str(time.time())+"\n")
+									flog.write("Warning: Number of tasks for service "+service_name+" in request "+str(request)+" will be "+str(docker_rep)+" at "+str(time.time())+"\n")
 									
 								# Check time threshold to check service completeness
 								ser_check_thr=self.setServiceThreshold(ser_check_thr, conf_in['services'][ser]['ser_check_thr'])	# set ttl to allowed value
@@ -955,7 +961,6 @@ class vifi():
 													user_data_dir=conf_in['services'][ser]['data'], work_dir=conf_in['services'][ser]['work_dir'], script=conf_in['services'][ser]['script'], \
 													docker_img=docker_img, docker_cmd=conf_in['services'][ser]['cmd_eng'], \
 													user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_check_thr):
-										self.ser_list.append(service_name)
 										ser_start_time=time.time()	# Record service creation time
 										self.req_list[request]['services'][service_name]={'start':ser_start_time}
 										flog.write(repr(ser_start_time)+":"+str(client.services.get(service_name))+"\n")	# Log the command
@@ -981,12 +986,12 @@ class vifi():
 									if conf_in['services'][ser]['results']:
 										for f_res in conf_in['services'][ser]['results']:
 											# Local copy of required final results (Just in case they are needed in the future)
-											if os.path.isfile(os.path.join(script_finished,f_res)):
-												shutil.copy(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request))
-											elif os.path.isdir(os.path.join(script_finished,f_res)):
-												shutil.copytree(os.path.join(script_finished,f_res),os.path.join(script_finished,req_res_path_per_request,f_res))
+											if os.path.isfile(os.path.join(script_processed,f_res)):
+												shutil.copy(os.path.join(script_processed,f_res),os.path.join(script_processed,req_res_path_per_request))
+											elif os.path.isdir(os.path.join(script_processed,f_res)):
+												shutil.copytree(os.path.join(script_processed,f_res),os.path.join(script_processed,req_res_path_per_request,f_res))
 											else:
-												flog.write("Failed to locally copy result "+os.path.join(script_finished,f_res)+" at "+repr(time.time())+"\n")
+												flog.write("Failed to locally copy result "+os.path.join(script_processed,f_res)+" at "+repr(time.time())+"\n")
 									
 									
 									# Delete service, if required, to release resource
@@ -998,7 +1003,7 @@ class vifi():
 										
 									# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
 									if conf_in['services'][ser]['s3']['transfer'] and conf_in['services'][ser]['s3']['bucket']:	  # s3_transfer is True and s3_buc has some value
-										self.s3Transfer(conf_in['services'][ser]['s3'], os.path.join(script_finished,req_res_path_per_request))
+										self.s3Transfer(conf_in['services'][ser]['s3'], os.path.join(script_processed,req_res_path_per_request))
 										flog.write("Transfered to S3 bucket at "+repr(time.time())+"\n")
 										
 								else:
@@ -1026,11 +1031,10 @@ class vifi():
 								flog.write("Request "+request+" FAILED at "+repr(req_end_time)+"\n")
 								
 							# Write the request log
-							self.reqLog(request, self.vifi_conf['req_log_path'], self.req_list[request])
+							self.reqLog(eq_log_path=self.vifi_conf['req_log_path'], req_log=self.req_list[request],req=request)
 							
 							# Clean the request log to save resource
 							self.req_list.clear()
-								
 								
 				else:
 					print('Error: Specified set '+set+' does not exist')

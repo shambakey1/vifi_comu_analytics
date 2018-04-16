@@ -101,7 +101,7 @@ domains:
         'shambakey1/ocw_cordex' :
          registery: "https://hub.docker.com/r/shambakey1/ocw_cordex/"
        docker_rep: "any"
-       ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
+       ttl: 3600  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
    AST:
      name: ast
      mode: 0o777
