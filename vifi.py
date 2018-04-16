@@ -406,7 +406,7 @@ class vifi():
 		'''
 		
 		try:
-			print('docker_rep='+docker_rep)
+			print('docker_rep='+str(docker_rep))
 			print('user_rep='+str(user_rep))
 			def_rep=1	# Default number of service tasks
 			if str(docker_rep).lower()=='any':	# VIFI Node allows any number of service tasks
@@ -441,7 +441,7 @@ class vifi():
 		'''
 		
 		try:
-			print('ser_check_thre='+ser_check_thr)
+			print('ser_check_thre='+str(ser_check_thr))
 			print('user_thr='+str(user_thr))
 			def_ttl=300	# Default ttl
 			if str(ser_check_thr).lower()=='any':
