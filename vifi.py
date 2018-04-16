@@ -952,9 +952,9 @@ class vifi():
 									flog.write("Warning: Number of tasks for service "+service_name+" in request "+str(request)+" will be "+str(task_no)+" at "+str(time.time())+"\n")
 									
 								# Check time threshold to check service completeness
-								ser_check_thr=self.setServiceThreshold(ser_check_thr, conf_in['services'][ser]['ser_check_thr'])	# set ttl to allowed value
-								if ser_check_thr!=conf_in['services'][ser]['ser_check_thr']:
-									flog.write("Warning: Service check threshold for request "+str(request)+" will be "+str(ser_check_thr)+" at "+str(time.time())+"\n")
+								ser_ttl=self.setServiceThreshold(ser_check_thr, conf_in['services'][ser]['ser_check_thr'])	# set ttl to allowed value
+								if ser_ttl!=conf_in['services'][ser]['ser_check_thr']:
+									flog.write("Warning: Service check threshold for request "+str(request)+" will be "+str(ser_ttl)+" at "+str(time.time())+"\n")
 								
 								# Create the required containerized user service, add service name to internal list of services of current request, and log the created service
 								#TOOO: Currently, the created service is appended to an internal list of service. In the future, we may need to keep track of more parameters related to the created service (e.g., user name, request path, ... etc)
@@ -964,7 +964,7 @@ class vifi():
 													container_dir=conf_in['services'][ser]['container_dir'], data_dir=data_dir, \
 													user_data_dir=conf_in['services'][ser]['data'], work_dir=conf_in['services'][ser]['work_dir'], script=conf_in['services'][ser]['script'], \
 													docker_img=docker_img, docker_cmd=conf_in['services'][ser]['cmd_eng'], \
-													user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_check_thr):
+													user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_ttl):
 										ser_start_time=time.time()	# Record service creation time
 										self.req_list[request]['services'][service_name]={'start':ser_start_time}
 										flog.write(repr(ser_start_time)+":"+str(client.services.get(service_name))+"\n")	# Log the command
@@ -977,7 +977,7 @@ class vifi():
 									traceback.print_exc(file=flog)
 										
 								# Check completeness of created service to transfer results (if required) and to end service
-								if self.checkServiceComplete(client,service_name,int(task_no),int(ser_check_thr)):
+								if self.checkServiceComplete(client,service_name,int(task_no),int(ser_ttl)):
 									# Log completeness time
 									ser_end_time=time.time()
 									self.req_list[request]['services'][service_name]={'end':ser_end_time}
