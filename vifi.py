@@ -947,9 +947,9 @@ class vifi():
 									continue
 								
 								# Check available task number for current service (VIFI Node can limit concurrent number of running tasks for one service)
-								docker_rep=self.setServiceNumber(docker_rep=docker_rep, user_rep=conf_in['services'][ser]['tasks'])	# set number of service tasks to allowed number
-								if docker_rep!=conf_in['services'][ser]['tasks']:
-									flog.write("Warning: Number of tasks for service "+service_name+" in request "+str(request)+" will be "+str(docker_rep)+" at "+str(time.time())+"\n")
+								task_no=self.setServiceNumber(docker_rep=docker_rep, user_rep=conf_in['services'][ser]['tasks'])	# set number of service tasks to allowed number
+								if task_no!=conf_in['services'][ser]['tasks']:
+									flog.write("Warning: Number of tasks for service "+service_name+" in request "+str(request)+" will be "+str(task_no)+" at "+str(time.time())+"\n")
 									
 								# Check time threshold to check service completeness
 								ser_check_thr=self.setServiceThreshold(ser_check_thr, conf_in['services'][ser]['ser_check_thr'])	# set ttl to allowed value
@@ -959,7 +959,7 @@ class vifi():
 								# Create the required containerized user service, add service name to internal list of services of current request, and log the created service
 								#TOOO: Currently, the created service is appended to an internal list of service. In the future, we may need to keep track of more parameters related to the created service (e.g., user name, request path, ... etc)
 								try:
-									if self.createUserService(client=client, service_name=service_name, docker_rep=docker_rep, \
+									if self.createUserService(client=client, service_name=service_name, docker_rep=task_no, \
 													script_path_in=script_path_in, request=request, \
 													container_dir=conf_in['services'][ser]['container_dir'], data_dir=data_dir, \
 													user_data_dir=conf_in['services'][ser]['data'], work_dir=conf_in['services'][ser]['work_dir'], script=conf_in['services'][ser]['script'], \
@@ -977,7 +977,7 @@ class vifi():
 									traceback.print_exc(file=flog)
 										
 								# Check completeness of created service to transfer results (if required) and to end service
-								if self.checkServiceComplete(client,service_name,int(docker_rep),int(ser_check_thr)):
+								if self.checkServiceComplete(client,service_name,int(task_no),int(ser_check_thr)):
 									# Log completeness time
 									ser_end_time=time.time()
 									self.req_list[request]['services'][service_name]={'end':ser_end_time}
