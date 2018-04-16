@@ -713,9 +713,10 @@ class vifi():
 		try:
 			s3 = boto3.resource('s3')
 			for path,dir,f_res in os.walk(data_path):
-				data = open(os.path.join(path,dir,f_res), 'rb')
-				key_obj=user_s3_conf['path']+"/"+f_res
-				s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
+				for f in f_res:
+					data = open(os.path.join(path,f), 'rb')
+					key_obj=user_s3_conf['path']+"/"+f
+					s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 		except:
 			result='Error: "s3Transfer" function has error(s): '
 			if flog:
