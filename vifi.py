@@ -406,6 +406,8 @@ class vifi():
 		'''
 		
 		try:
+			print('docker_rep='+docker_rep)
+			print('user_rep='+str(user_rep))
 			def_rep=1	# Default number of service tasks
 			if str(docker_rep).lower()=='any':	# VIFI Node allows any number of service tasks
 				if user_rep:
@@ -426,7 +428,7 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
-	def setServiceThreshold(self,ser_check_thr:str,user_thr:int,flog:TextIOWrapper=None)->int:
+	def setServiceThreshold(self,ser_check_thr:str,user_thr:int=None,flog:TextIOWrapper=None)->int:
 		''' Specify time threshold (or ttl) to check completeness of user's required service(s)
 		@param ser_check_thr: Service check threshold (i.e., ttl) as specified by VIFI Node. If 'any', then VIFI Node allows infinite time to check service completeness
 		@type ser_check_thr: str
@@ -439,6 +441,8 @@ class vifi():
 		'''
 		
 		try:
+			print('ser_check_thre='+ser_check_thr)
+			print('user_thr='+str(user_thr))
 			def_ttl=300	# Default ttl
 			if str(ser_check_thr).lower()=='any':
 				if user_thr:

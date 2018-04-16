@@ -72,7 +72,7 @@ services:                    # Group of required services for current request. T
   - nam_out:/data/output/CORDEX/analysis
   results:                   # List of result files of the service
   - nam_out
-  ser_check_thr: 300         # Service check threshold (ttl) to check service completness
+  ser_check_thr: 3600         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
     transfer: True
     bucket: uncc-vifi-bucket
