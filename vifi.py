@@ -798,7 +798,7 @@ class vifi():
 		# Write request log to created log file. Log file is created if not already exists
 		if not (req.endswith('.yml') or req.endswith('.yaml')):
 			req=req+".yml"
-		with open(os.path.join(req_log_path,req),'a') as f:
+		with open(os.path.join(req_log_path,req),'w') as f:
 			yaml.dump(req_log,f)
 									
 		
