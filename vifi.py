@@ -851,11 +851,7 @@ class vifi():
 				traceback.print_exc(file=flog)
 			else:
 				print(result)
-				traceback.print_exc()	
-				
-		finally:
-			if req_analysis_f:
-				f.close()
+				traceback.print_exc()
 	
 	def reqsDirAnalysis(self,req_log_dir:str,req_analysis_f:str=None,flog:TextIOWrapper=None)->pd.DataFrame:
 		''' Analyzes all request logs that exist in a specific directory
