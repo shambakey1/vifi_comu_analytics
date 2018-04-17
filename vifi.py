@@ -833,14 +833,15 @@ class vifi():
 			# Join all analysis records together		
 			df=pd.concat(dt)
 			
+			# Reorder collected records for a better view
+			df=df[['request','service','no_tasks','start','end','cmp_time']]
+			
 			# Create final analysis file, or open an existing one if desired
 			if req_analysis_f:
 				with open(req_analysis_f,'w') as f:
 					df.to_csv(f,index=False)
 			
-			# Reorder collected records for a better view
-			df=df[['request','service','no_tasks','start','end','cmp_time']]
-			
+			# Return collected analysis records
 			return df
 		
 		except:
