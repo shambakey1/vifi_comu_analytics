@@ -6,6 +6,7 @@ Created on Mar 29, 2018
 '''
 
 import yaml, time, os, sys, shutil, json, uuid, requests, docker, traceback
+import pandas as pd
 import docker.models
 from typing import List
 from builtins import str, int
@@ -797,7 +798,100 @@ class vifi():
 			req=req+".yml"
 		with open(os.path.join(req_log_path,req),'w') as f:
 			yaml.dump(req_log,f)
-									
+			
+	def reqsAnalysis(self,req_paths:List[str],req_analysis_f:str=None,flog:TextIOWrapper=None)->pd.DataFrame:
+		''' Analyze requests logs
+		@note: This function depends on the YAML structure of requests logs
+		@param req_paths: Paths to requests to analyze 
+		@type req_paths: List[str] 
+		@param req_analysis_f: Optional file to keep requests analysis results
+		@type req_analysis_f: str
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object)
+		@return: Analysis results
+		@rtype: pandas.DataFrame  
+		'''
+		try:
+				
+			# Initialize required variables
+			dt=[]	# List to hold all analysis record of all requests
+			cnt=0	# Counter to index analysis records
+			
+			# Traverse through all required requests paths
+			for reqf in req_paths:
+				with open(reqf,'r') as x:
+					req=yaml.load(x)
+					for ser in req['services']:
+						d=pd.DataFrame(data={'request':reqf,'service':[ser],'start':[float(req['services'][ser]['start'])],\
+											'end':[float(req['services'][ser]['end'])],'cmp_time':\
+											[float(req['services'][ser]['end'])-float(req['services'][ser]['start'])],\
+											'no_tasks':[int(req['services'][ser]['tasks'])]},index=[cnt])
+						dt.append(d)
+						cnt=cnt+1
+			
+			# Join all analysis records together		
+			df=pd.concat(dt)
+			
+			# Create final analysis file, or open an existing one if desired
+			if req_analysis_f:
+				with open(req_analysis_f,'w') as f:
+					df.to_csv(f,index=False)
+			
+			return df
+		
+		except:
+			result='Error: "reqAnalysis" function has error(s): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()	
+				
+		finally:
+			if req_analysis_f:
+				f.close()
+	
+	def reqsDirAnalysis(self,req_log_dir:str,req_analysis_f:str=None,flog:TextIOWrapper=None)->pd.DataFrame:
+		''' Analyzes all request logs that exist in a specific directory
+		@param req_log_dir: Directory containing request logs
+		@type req_log_dir: str
+		@param req_analysis_f: Optional file to keep requests analysis results
+		@type req_analysis_f: str
+		@type flog: TextIOWrapper (file object)
+		@return: Analysis results
+		@rtype: pandas.DataFrame  
+		'''
+		
+		try:
+			# Check directory path is valid
+			if os.path.isdir(req_log_dir):
+				
+				# Initialize empty list to hold requests' logs
+				req_logs=[]
+				
+				# Collect all requests logs
+				for path,dir,f_res in os.walk(req_log_dir):
+					for f in f_res:
+						req_logs.append(os.path.join(path,f))
+						
+				# Pass collected logs to @reqsAnalysis
+				return self.reqsAnalysis(req_logs, req_analysis_f, flog)
+			else:
+				# Direcory path is not valid
+				print('Error: directory path is not valid')
+				return None
+		
+		except:
+			result='Error: "reqDirAnalysis" function has error(s): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
+				
+			return None
 		
 	def vifiRun(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)->None:
 		''' VIFI request analysis and processing procedure for list of sets (i.e., (sub)workflows). The default 
