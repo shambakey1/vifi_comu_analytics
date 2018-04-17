@@ -801,6 +801,7 @@ class vifi():
 			
 	def reqsAnalysis(self,req_paths:List[str],req_analysis_f:str=None,flog:TextIOWrapper=None)->pd.DataFrame:
 		''' Analyze requests logs
+		@note: Despite this function can be moved outside the class. I preferred to leave it in the class just in case it may be needed in the future for scheduling and load balancing
 		@note: This function depends on the YAML structure of requests logs
 		@param req_paths: Paths to requests to analyze 
 		@type req_paths: List[str] 
@@ -837,6 +838,9 @@ class vifi():
 				with open(req_analysis_f,'w') as f:
 					df.to_csv(f,index=False)
 			
+			# Reorder collected records for a better view
+			df=df[['request','service','no_tasks','start','end','cmp_time']]
+			
 			return df
 		
 		except:
@@ -854,6 +858,7 @@ class vifi():
 	
 	def reqsDirAnalysis(self,req_log_dir:str,req_analysis_f:str=None,flog:TextIOWrapper=None)->pd.DataFrame:
 		''' Analyzes all request logs that exist in a specific directory
+		@note: Despite this function can be moved outside the class. I preferred to leave it in the class just in case it may be needed in the future for scheduling and load balancing
 		@param req_log_dir: Directory containing request logs
 		@type req_log_dir: str
 		@param req_analysis_f: Optional file to keep requests analysis results
