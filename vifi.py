@@ -168,7 +168,7 @@ class vifi():
 			else:
 				print(result)
 				traceback.print_exc()
-	 
+	
 	def getMetricsValues(self,m:List[str], start_t:float,end_t:float,prom_path:str,step:int,uname:str,upass:str,\
 						write_to_file:bool,fname:str,fname_path:str,flog:TextIOWrapper=None)->dict:
 		''' Get specified metric values for specified duration if start and end times of duration are specified. If either \
