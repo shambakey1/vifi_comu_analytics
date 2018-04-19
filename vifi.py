@@ -881,7 +881,7 @@ class vifi():
 						self.getMetricsValues(m=metrics, start_t=metric_start, end_t=metric_end, prom_path=prom_conf['prometheus_url'],\
 								step=prom_conf['query_step'],uname=prom_conf['uname'],upass=prom_conf['upass'],\
 								write_to_file=prom_conf['write_metrics'], fname=metrics_values_f, \
-								fname_path=metrics_values_path, flog)
+								fname_path=metrics_values_path, flog=flog)
 			
 			# Join all analysis records together		
 			df=pd.concat(dt)
