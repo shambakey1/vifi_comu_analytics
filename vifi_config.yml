@@ -20,14 +20,14 @@ Prometheus_parameters:
   upass: admin         # Prometheus default user password
   prometheus_url: http://localhost:9090/api/v1/  # Prometheus default API url
   query_step: 15         # Steps between consecutive queries time series (Default is 15 sec)
-  metrics_names_f:    # Default output file to record metrics names
-  metrics_names_path: ''      # Default path to store @metrics_names_f
-  metrics_values_f:        # Default output file to record metrics values
-  metrics_values_path: ''    # Default path to store @metrics_values_f
-  write_metrics: False        # If set, write metrics values to @metrics_values_path/@metrics_values_f 
+  metrics_names_f: 'metrics_names.out'   # Default output file to record metrics names
+  metrics_names_path: '/home/ubuntu/poc_scripts/analysis'      # Default path to store @metrics_names_f
+  metrics_values_f: ''       # Default output file to record metrics values
+  metrics_values_path: '/home/ubuntu/poc_scripts/analysis'    # Default path to store @metrics_values_f
+  write_metrics: True        # If set, write metrics values to @metrics_values_path/@metrics_values_f 
   
 ############ LOGGING PARAMETERS #################
-vifi_log: '/f/personal/postdoc/uncc/vifi/test/vifi_log.out'
+vifi_log: '/home/ubuntu/requests/logs/vifi_log.out'
 req_log_path: '/home/ubuntu/requests/logs' 
 
 ########## SUPPORTED COMPRESSED TYPES ############

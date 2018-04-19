@@ -12,6 +12,7 @@ from typing import List
 from builtins import str, int
 from genericpath import isfile
 from _io import TextIOWrapper
+from boto.ec2.cloudwatch import metric
 
 class vifi():
 	'''
@@ -111,7 +112,7 @@ class vifi():
 		@type uname: str
 		@param upass: Prometheus password
 		@type upass: str
-		@param fname: File path to record metrics names
+		@param fname: File to record metrics names
 		@type fname: str
 		@param fname_path: Path to store @fname
 		@type fname_path: str 
@@ -170,10 +171,11 @@ class vifi():
 	
 	def getMetricsValues(self,m:List[str], start_t:float,end_t:float,prom_path:str,step:int,uname:str,upass:str,\
 						write_to_file:bool,fname:str,fname_path:str,flog:TextIOWrapper=None)->dict:
-		''' Get specified metric values for specified duration if start and end times of duration are specified
-		If either start or end times are not specified, then query is done only at the time instance that is specified by either of them.
-		@param m: Metric name
-		@type m: str 
+		''' Get specified metric values for specified duration if start and end times of duration are specified. If either \
+		start or end times are not specified, then query is done only at the time instance that is specified by either of \
+		them.
+		@param m: Metrics names
+		@type m: List[str] 
 		@param prom_path: Prometheus API url 
 		@type prom_path: str
 		@param start_t: Start time to collect metric's time series values (Unix Time Stamp). Defaults to current time. If not specified, the query is done at a single time instance specified by @end_t. At least @start_t and/or @end_t should be specified.
@@ -799,27 +801,60 @@ class vifi():
 		with open(os.path.join(req_log_path,req),'w') as f:
 			yaml.dump(req_log,f)
 			
-	def reqsAnalysis(self,req_paths:List[str],req_analysis_f:str=None,flog:TextIOWrapper=None)->pd.DataFrame:
+	def reqsAnalysis(self,req_paths:List[str],req_analysis_f:str,req_analysis_path:str=None,prom_conf:dict=None,\
+					metrics_values_path:str=None,metrics_values_f:str=None,flog:TextIOWrapper=None)->pd.DataFrame:
 		''' Analyze requests logs
 		@note: Despite this function can be moved outside the class. I preferred to leave it in the class just in case it may be needed in the future for scheduling and load balancing
 		@note: This function depends on the YAML structure of requests logs
+		@note: Current implementation makes a simple analysis, and collection of Prometheus metrics
 		@param req_paths: Paths to requests to analyze 
 		@type req_paths: List[str] 
 		@param req_analysis_f: Optional file to keep requests analysis results
 		@type req_analysis_f: str
+		@param req_analysis_path: Path to store generated analysis files
+		@type req_analysis_path: str 
+		@param prom_conf: VIFI Node configuration for Prometheus 
+		@type prom_conf: dict
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		@return: Analysis results
 		@rtype: pandas.DataFrame  
 		'''
+		
+		import ntpath
+		
 		try:
-				
 			# Initialize required variables
 			dt=[]	# List to hold all analysis record of all requests
 			cnt=0	# Counter to index analysis records
 			
+			# Record Prometheus metrics if required
+			if prom_conf:
+				# Determine file path containing metrics names
+				metrics_names=os.path.join(prom_conf['Prometheus_parameters']['metrics_names_path'],\
+									prom_conf['Prometheus_parameters']['metrics_names_f'])
+				
+				# Retrieve required metrics names from file if exists. Otherwise, create file
+				if os.path.isfile(metrics_names) and os.path.getsize(metrics_names)>0:
+					metrics=self.getMetricsNames(metrics_names, flog)
+				else:
+					os.makedirs(prom_conf['Prometheus_parameters']['metrics_names_path'],exist_ok=True)
+					metrics=self.getPromMetricsNames(prom_path=prom_conf['Prometheus_parameters']['prometheus_url'],\
+													uname=prom_conf['Prometheus_parameters']['uname'],\
+													upass=prom_conf['Prometheus_parameters']['upass'],\
+													fname=prom_conf['Prometheus_parameters']['metrics_names_f'],\
+													fname_path=prom_conf['Prometheus_parameters']['metrics_names_path'],flog=flog)
+				
+				# Determine file name and path to record collected Prometheus metrics if required
+				if not metrics_values_f:
+					metrics_values_f=prom_conf['metrics_values_f']
+				
+				if not metrics_values_path:
+					metrics_values_path=prom_conf['metrics_values_path']
+			
 			# Traverse through all required requests paths
 			for reqf in req_paths:
+				# Initialize prometheus variables
 				with open(reqf,'r') as x:
 					req=yaml.load(x)
 					for ser in req['services']:
@@ -827,8 +862,26 @@ class vifi():
 											'end':[float(req['services'][ser]['end'])],'cmp_time':\
 											[float(req['services'][ser]['end'])-float(req['services'][ser]['start'])],\
 											'no_tasks':[int(req['services'][ser]['tasks'])]},index=[cnt])
-						dt.append(d)
-						cnt=cnt+1
+						dt.append(d)	# Append current record to collected analysis results
+						cnt=cnt+1	# Increment record index
+				
+					# Record Prometheus metrics if allowed by VIFI node
+					if prom_conf:
+						# Determine first time to record metrics as start time of first service in request
+						metric_start=min([req['services'][ser]['start'] for ser in req['services']])
+						
+						# Determine last time to record metrics as the end time of last service in request 
+						metric_end=max([req['services'][ser]['end'] for ser in req['services']])
+						
+						# If no file is given to record Prometheus metrics, then make file name that contains Prometheus metrics values. File name consists of request name, start time of first service, end time of last service 
+						if not metrics_values_f:
+							metrics_values_f=ntpath.basename(reqf)+'_'+str(metric_start)+'_'+str(metric_end)
+										
+						# Record Prometheus metrics in created Prometheus file
+						self.getMetricsValues(m=metrics, start_t=metric_start, end_t=metric_end, prom_path=prom_conf['prometheus_url'],\
+								step=prom_conf['query_step'],uname=prom_conf['uname'],upass=prom_conf['upass'],\
+								write_to_file=prom_conf['write_metrics'], fname=metrics_values_f, \
+								fname_path=metrics_values_path, flog)
 			
 			# Join all analysis records together		
 			df=pd.concat(dt)
@@ -838,8 +891,11 @@ class vifi():
 			
 			# Create final analysis file, or open an existing one if desired
 			if req_analysis_f:
+				if req_analysis_path and os.path.isdir(req_analysis_path):
+					req_analysis_f=os.path.join(req_analysis_path,req_analysis_f)
 				with open(req_analysis_f,'w') as f:
 					df.to_csv(f,index=False)
+				
 			
 			# Return collected analysis records
 			return df

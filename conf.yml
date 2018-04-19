@@ -54,7 +54,7 @@ services:                    # Group of required services for current request. T
   cmd_eng: python            # Command to run user's script
   args:                      # List of arguments to be passed for user's script
   - "/data/output/CORDEX/analysis/config_files.csv"
-  tasks: 2                   # Required number of tasks for the created service
+  tasks: 6                   # Required number of tasks for the created service
   data:                      # Required data for the service
    NAM-44:                     # 'key' is the data 'key' as retrived by data management layer
     container_data_path: "/data/input/CORDEX/NAM-44" # Data path insided the created service (e.g., data path inside docker container)
@@ -66,7 +66,7 @@ services:                    # Group of required services for current request. T
   work_dir:           # Work directory inside container
   envs:                      # List of user specified environment variables (in the form key=val) to be used within the containerized application
   - 't={{.Task.Slot}}'
-  - 'repl=2'
+  - 'repl=6'
   mnts:                      # List of user specified mounts (in the form source:target:options) to be used within the containerized application
   - cordex2.py:/usr/local/climate/RCMES/CORDEX/cordex2.py
   - nam_out:/data/output/CORDEX/analysis
