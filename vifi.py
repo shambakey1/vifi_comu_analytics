@@ -12,7 +12,6 @@ from typing import List
 from builtins import str, int
 from genericpath import isfile
 from _io import TextIOWrapper
-from boto.ec2.cloudwatch import metric
 
 class vifi():
 	'''
