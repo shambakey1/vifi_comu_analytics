@@ -10,7 +10,6 @@ import pandas as pd
 import docker.models
 from typing import List
 from builtins import str, int
-from genericpath import isfile
 from _io import TextIOWrapper
 
 class vifi():
@@ -908,13 +907,18 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
-	def reqsDirAnalysis(self,req_log_dir:str,req_analysis_f:str=None,flog:TextIOWrapper=None)->pd.DataFrame:
+	def reqsDirAnalysis(self,req_log_dir:str,req_analysis_path:str=None,req_analysis_f:str=None,prom_conf:dict=None,\
+					metrics_values_path:str=None,metrics_values_f:str=None,flog:TextIOWrapper=None)->pd.DataFrame:
 		''' Analyzes all request logs that exist in a specific directory
 		@note: Despite this function can be moved outside the class. I preferred to leave it in the class just in case it may be needed in the future for scheduling and load balancing
 		@param req_log_dir: Directory containing request logs
 		@type req_log_dir: str
+		@param req_analysis_path: Path to store resulting analysis files
+		@type req_analysis_path: str
 		@param req_analysis_f: Optional file to keep requests analysis results
 		@type req_analysis_f: str
+		@param prom_conf: Prometheues configuration
+		@type prom_conf: dict 
 		@type flog: TextIOWrapper (file object)
 		@return: Analysis results
 		@rtype: pandas.DataFrame  
@@ -933,7 +937,9 @@ class vifi():
 						req_logs.append(os.path.join(path,f))
 						
 				# Pass collected logs to @reqsAnalysis
-				return self.reqsAnalysis(req_logs, req_analysis_f, flog)
+				return self.reqsAnalysis(req_paths=req_logs,req_analysis_f=req_analysis_f,\
+										req_analysis_path=req_analysis_path,prom_conf=prom_conf,\
+					metrics_values_path=metrics_values_path,metrics_values_f=metrics_values_f,flog=flog)
 			else:
 				# Direcory path is not valid
 				print('Error: directory path is not valid')
