@@ -829,19 +829,19 @@ class vifi():
 			# Record Prometheus metrics if required
 			if prom_conf:
 				# Determine file path containing metrics names
-				metrics_names=os.path.join(prom_conf['Prometheus_parameters']['metrics_names_path'],\
-									prom_conf['Prometheus_parameters']['metrics_names_f'])
+				metrics_names=os.path.join(prom_conf['metrics_names_path'],\
+									prom_conf['metrics_names_f'])
 				
 				# Retrieve required metrics names from file if exists. Otherwise, create file
 				if os.path.isfile(metrics_names) and os.path.getsize(metrics_names)>0:
 					metrics=self.getMetricsNames(metrics_names, flog)
 				else:
-					os.makedirs(prom_conf['Prometheus_parameters']['metrics_names_path'],exist_ok=True)
-					metrics=self.getPromMetricsNames(prom_path=prom_conf['Prometheus_parameters']['prometheus_url'],\
-													uname=prom_conf['Prometheus_parameters']['uname'],\
-													upass=prom_conf['Prometheus_parameters']['upass'],\
-													fname=prom_conf['Prometheus_parameters']['metrics_names_f'],\
-													fname_path=prom_conf['Prometheus_parameters']['metrics_names_path'],flog=flog)
+					os.makedirs(prom_conf['metrics_names_path'],exist_ok=True)
+					metrics=self.getPromMetricsNames(prom_path=prom_conf['prometheus_url'],\
+													uname=prom_conf['uname'],\
+													upass=prom_conf['upass'],\
+													fname=prom_conf['metrics_names_f'],\
+													fname_path=prom_conf['metrics_names_path'],flog=flog)
 				
 				# Determine file name and path to record collected Prometheus metrics if required
 				if not metrics_values_f:
