@@ -873,12 +873,12 @@ class vifi():
 						
 						# If no file is given to record Prometheus metrics, then make file name that contains Prometheus metrics values. File name consists of request name, start time of first service, end time of last service 
 						if not metrics_values_f:
-							metrics_values_f=ntpath.basename(reqf)+'_'+str(metric_start)+'_'+str(metric_end)
+							metrics_values_fname=ntpath.basename(reqf)+'_'+str(metric_start)+'_'+str(metric_end)
 										
 						# Record Prometheus metrics in created Prometheus file
 						self.getMetricsValues(m=metrics, start_t=metric_start, end_t=metric_end, prom_path=prom_conf['prometheus_url'],\
 								step=prom_conf['query_step'],uname=prom_conf['uname'],upass=prom_conf['upass'],\
-								write_to_file=prom_conf['write_metrics'], fname=metrics_values_f, \
+								write_to_file=prom_conf['write_metrics'], fname=metrics_values_fname, \
 								fname_path=metrics_values_path, flog=flog)
 			
 			# Join all analysis records together		
