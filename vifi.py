@@ -796,7 +796,7 @@ class vifi():
 						os.remove(os.path.join(comp_path,req))
 						
 						# Change permissions for uncompressed folder (Currently, permissions are changed to 777 to allow writing by docker services into created folders)
-						with open('tlog.out','a+') as ft:
+						with open('clog.out','a+') as ft:
 							ft.write(os.path.join(comp_path,req).split('.zip')[0])
 						self.changePermissionsRecursive(path=os.path.join(comp_path,req.split('.zip')[0]), mode=0o777)
 		except:
