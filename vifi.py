@@ -736,7 +736,7 @@ class vifi():
 		@type mode: Oct    
 		'''
 		try:
-			for root, dirs, files in os.walk():
+			for root, dirs, files in os.walk(path):
 				for dir in [os.path.join(root,d) for d in dirs]:
 					os.chmod(dir,mode)
 					
