@@ -798,7 +798,7 @@ class vifi():
 						# Change permissions for uncompressed folder (Currently, permissions are changed to 777 to allow writing by docker services into created folders)
 						with open('clog.out','a+') as ft:
 							ft.write(os.path.join(comp_path,req).split('.zip')[0])
-						self.changePermissionsRecursive(path=os.path.join(comp_path,req.split('.zip')[0]), mode=0o777)
+						self.changePermissionsRecursive(os.path.join(comp_path,req).split('.zip')[0])
 		except:
 			result='Error: "unpackCompressedRequests" function has error(s): '
 			if flog:
