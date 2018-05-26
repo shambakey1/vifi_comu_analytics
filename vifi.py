@@ -726,6 +726,21 @@ class vifi():
 			else:
 				print(result)
 				traceback.print_exc()
+				
+	def changePermissionsRecursive(path:str, mode:str=0o777):
+		''' Changes permissions of files and folders recursively under specified path
+		@see https://www.tutorialspoint.com/How-to-change-the-permission-of-a-directory-using-Python
+		@param path: Top path to change permissions
+		@type path: str
+		@param mode: Permissions mode to set
+		@type mode: Oct    
+		'''
+	    for root, dirs, files in os.walk(path, topdown=False):
+	        for dir in [os.path.join(root,d) for d in dirs]:
+	            os.chmod(dir, mode)
+	    for file in [os.path.join(root, f) for f in files]:
+	            os.chmod(file, mode)
+
 			
 	def unpackCompressedRequests(self,conf:dict=None,sets:List[str]=None,flog:TextIOWrapper=None)->None:
 		''' Unpack any compressed requests under specified set(s) (i.e., (sub)workflow(s))
@@ -770,6 +785,9 @@ class vifi():
 					
 						# Remove compressed file after extraction
 						os.remove(os.path.join(comp_path,req))
+						
+						# Change permissions for uncompressed folder (Currently, permissions are changed to 777 to allow writing by docker services into created folders)
+						self.changePermissionsRecursive(path=os.path.join(comp_path,req), mode=0o777)
 		except:
 			result='Error: "unpackCompressedRequests" function has error(s): '
 			if flog:
