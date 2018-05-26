@@ -727,7 +727,7 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 				
-	def changePermissionsRecursive(path:str, mode:str=0o777):
+	def changePermissionsRecursive(path:str, mode:str=0o777,flog:TextIOWrapper=None)->None:
 		''' Changes permissions of files and folders recursively under specified path
 		@see https://www.tutorialspoint.com/How-to-change-the-permission-of-a-directory-using-Python
 		@param path: Top path to change permissions
@@ -735,13 +735,21 @@ class vifi():
 		@param mode: Permissions mode to set
 		@type mode: Oct    
 		'''
-		
-	    for root, dirs, files in os.walk(path, topdown=False):
-	    	for dir in [os.path.join(root,d) for d in dirs]:
-	    		os.chmod(dir, mode)
-	    for file in [os.path.join(root, f) for f in files]:
-	            os.chmod(file, mode)
-
+		try:
+			for root, dirs, files in os.walk():
+				for dir in [os.path.join(root,d) for d in dirs]:
+					os.chmod(dir,mode)
+					
+				for file in [os.path.join(root,f) for f in files]:
+					os.chmod(file,mode)
+		except:
+			result='changePermissionsRecursive" function has error(s): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
 			
 	def unpackCompressedRequests(self,conf:dict=None,sets:List[str]=None,flog:TextIOWrapper=None)->None:
 		''' Unpack any compressed requests under specified set(s) (i.e., (sub)workflow(s))
