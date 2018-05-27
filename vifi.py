@@ -727,7 +727,7 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 				
-	def changePermissionsRecursive(path:str, mode:str=0o777,flog:TextIOWrapper=None)->None:
+	def changePermissionsRecursive(self,path:str, mode:str=0o777,flog:TextIOWrapper=None)->None:
 		''' Changes permissions of files and folders recursively under specified path
 		@see https://www.tutorialspoint.com/How-to-change-the-permission-of-a-directory-using-Python
 		@param path: Top path to change permissions
@@ -743,6 +743,7 @@ class vifi():
 					
 				for file in [os.path.join(root,f) for f in files]:
 					os.chmod(file,mode)
+					
 		except:
 			result='changePermissionsRecursive" function has error(s): '
 			if flog:
