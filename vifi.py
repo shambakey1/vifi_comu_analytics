@@ -735,8 +735,9 @@ class vifi():
 		@param mode: Permissions mode to set
 		@type mode: Oct    
 		'''
+		
 		try:
-			for root, dirs, files in os.walk(path):
+			for root, dirs, files in os.walk(path,topdown=False):
 				for dir in [os.path.join(root,d) for d in dirs]:
 					os.chmod(dir,mode)
 					
