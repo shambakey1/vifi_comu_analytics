@@ -511,7 +511,7 @@ class vifi():
 			# folder is mapped to the root directory in the container
 			if not container_dir:
 				container_dir=os.path.abspath(os.sep)
-			mnts=[os.path.join(script_path_in,request)+":"+container_dir]	# Initialize list of mounts for user's request
+			mnts=[os.path.join(script_path_in,request)+":"+container_dir+":rw"]	# Initialize list of mounts for user's request
 				
 			# Mount the data directories
 			for x in user_data_dir.keys():	# mount data physical path at VIFI Node to user specified paths
