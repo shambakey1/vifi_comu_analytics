@@ -507,11 +507,11 @@ class vifi():
 			if user_envs:	# Append user environment variables if any
 				envs.extend(user_envs)
 			
-			# Mount the user request folder to the specified container_dir if any
-			if container_dir:
-				mnts=[os.path.join(script_path_in,request)+":"+container_dir]	# Initialize list of mounts for user's request
-			else:
-				mnts=[]
+			# Mount the user request folder to the specified container_dir if any. Otherwise, the user request
+			# folder is mapped to the root directory in the container
+			if not container_dir:
+				container_dir=os.path.abspath(os.sep)
+			mnts=[os.path.join(script_path_in,request)+":"+container_dir]	# Initialize list of mounts for user's request
 				
 			# Mount the data directories
 			for x in user_data_dir.keys():	# mount data physical path at VIFI Node to user specified paths
