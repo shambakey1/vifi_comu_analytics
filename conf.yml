@@ -40,6 +40,9 @@ services:                    # Group of required services for current request. T
     transfer: False
     bucket: uncc-vifi-bucket
     path: jpl_cordex
+  nifi:                        # This section for NIFI transfer of specified results
+    transfer: False 
+    archname: nifi.zip		# Name of the zip compressed file that contains the final results to be transfered by NIFI
  
  ocw_cordex_stg2:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
@@ -77,4 +80,7 @@ services:                    # Group of required services for current request. T
     transfer: True
     bucket: uncc-vifi-bucket
     path: jpl_cordex
+  nifi:                        # This section for NIFI transfer of specified results
+    transfer: False 
+    archname: nifi.zip		# Name of the zip compressed file that contains the final results to be transfered by NIFI
     
