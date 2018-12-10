@@ -6,6 +6,8 @@
 userid: jpl_cordex_sg1           # User name should be a universal unique name (e.g., the username at institution)
 services:                    # Group of required services for current request. Thus, a single request (to a specified (sub)workflow) consists of zero or more services. The services can be dependent or independent 
  ocw_cordex_stg1:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
+  iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
+   max_rep: 1               # Maximum iteration numbers. Default is 1 to run the service only once
   dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
    files:                    # Lisf of files/directories that should exist for current service to run including the @script. 'f' stands for 'file', while 'd' stands for 'directory'. All files/directories are relative to user request location
     cordex1.py: f
@@ -47,6 +49,8 @@ services:                    # Group of required services for current request. T
     archname: nifi.zip		# Name of the zip compressed file that contains the final results to be transfered by NIFI
  
  ocw_cordex_stg2:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
+  iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
+   max_rep: 1               # Maximum iteration numbers. Default is 1 to run the service only once
   dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
    files:                    # Lisf of files/directories that should exist for current service to run including the @script. 'f' stands for 'file', while 'd' stands for 'directory'. All files/directories are relative to user request location
     cordex2.py: f
