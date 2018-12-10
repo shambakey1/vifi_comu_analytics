@@ -699,6 +699,35 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
+	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,flog:TextIOWrapper=None)->None:
+		''' Transfer required results as a compressed zip file using NIFI
+		NOTE: Current implementation just creates the compressed file to be transfered by NIFI. Current implementation 
+		does not transfer the file by itself. The transfer process is done by NIFI workflow design
+		@param user_nifi_conf: User configurations related to NIFI
+		@type user_nifi_conf: dict  
+		@param data_path: Path of files to be transfered
+		@type data_path: str  
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object)
+		'''
+		
+		try:
+			if not user_nifi_conf['archname']:	# Just in case archive file name is not given
+				user_nifi_conf['archname']='nifi.zip'
+			archname=os.path.join(data_path,user_nifi_conf['archname'])	# Name and path of the compressed results file
+			with ZipFile(archname, 'w') as myzip:
+				for path,dir,f_res in os.walk(data_path):
+					for f in f_res:
+						myzip.write(os.path.join(path,f))
+		except:
+			result='Error: "nifiTransfer" function has error(s): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
+		
 	def s3Transfer(self,user_s3_conf:dict,data_path:str,flog:TextIOWrapper=None)->None:
 		''' Transfer files to S3 bucket
 		@param user_s3_conf: User configurations related to S3 bucket
@@ -1195,6 +1224,11 @@ class vifi():
 									if conf_in['services'][ser]['s3']['transfer'] and conf_in['services'][ser]['s3']['bucket']:	  # s3_transfer is True and s3_buc has some value
 										self.s3Transfer(conf_in['services'][ser]['s3'], os.path.join(script_processed,req_res_path_per_request))
 										flog.write("Transfered to S3 bucket at "+repr(time.time())+"\n")
+									
+									# If NIFI is enabled, then transfer required results using NIFI 
+									if conf_in['services'][ser]['nifi']['transfer']:
+										self.nifiTransfer(conf_in['services'][ser]['nifi'],os.path.join(script_processed,req_res_path_per_request))
+										flog.write("Ready to be transfered by NIFI at "+repr(time.time())+"\n")
 										
 								else:
 									#TODO: If current service fails, then abort whole request. This behavior may need modifications in the future
