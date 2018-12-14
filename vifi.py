@@ -705,7 +705,7 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
-	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,conf_res:dict,flog:TextIOWrapper=None)->None:
+	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,flog:TextIOWrapper=None)->None:
 		''' Transfer required results as a compressed zip file using NIFI
 		NOTE: Current implementation just creates the compressed file to be transfered by NIFI. Current implementation 
 		does not transfer the file by itself. The transfer process is done by NIFI workflow design
@@ -713,8 +713,6 @@ class vifi():
 		@type user_nifi_conf: dict  
 		@param data_path: Path of files to be transfered
 		@type data_path: str 
-		@param conf_res: Results configuration
-		@type conf_res: dict   
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		'''
