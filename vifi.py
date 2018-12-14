@@ -728,6 +728,9 @@ class vifi():
 				# Compress the created user_name directory
 				shutil.make_archive(user_nifi_conf['archname'], 'zip', data_path, os.path.join(data_path,user_nifi_conf['archname']))
 				
+				# Move the compressed file under the results directory
+				shutil.move(user_nifi_conf['archname']+".zip", data_path)
+				
 		except:
 			result='Error: "nifiTransfer" function has error(s): '
 			if flog:
