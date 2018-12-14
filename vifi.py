@@ -9,6 +9,7 @@ import yaml, time, os, sys, shutil, json, uuid, requests, docker, traceback
 import pandas as pd
 import docker.models
 from typing import List
+from zipfile import ZipFile
 from builtins import str, int
 from _io import TextIOWrapper
 
@@ -803,8 +804,6 @@ class vifi():
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object) 
 		'''
-		
-		from zipfile import ZipFile
 		
 		try:
 			# Either load input VIFI configuration file, or load internal VIFI configuration file
