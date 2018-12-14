@@ -3,7 +3,7 @@
 # to generate some parameters appropriately (e.g., service name can be unique for this user). Also, a GUI can be used \
 # to generate this file
 
-userid: jpl_cordex_sg1           # User name should be a universal unique name (e.g., the username at institution)
+userid: &userid jpl_cordex_sg1           # User name should be a universal unique name (e.g., the username at institution)
 services:                    # Group of required services for current request. Thus, a single request (to a specified (sub)workflow) consists of zero or more services. The services can be dependent or independent 
  ocw_cordex_stg1:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
@@ -88,4 +88,6 @@ services:                    # Group of required services for current request. T
     path: jpl_cordex
   nifi:                        # This section for NIFI transfer of specified results
     transfer: False 
-    archname: nifi.zip		# Name of the zip compressed file that contains the final results to be transfered by NIFI
+    archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
+    archtype: 'zip'
+    

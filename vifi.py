@@ -705,26 +705,29 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
-	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,flog:TextIOWrapper=None)->None:
+	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,conf_res:dict,flog:TextIOWrapper=None)->None:
 		''' Transfer required results as a compressed zip file using NIFI
 		NOTE: Current implementation just creates the compressed file to be transfered by NIFI. Current implementation 
 		does not transfer the file by itself. The transfer process is done by NIFI workflow design
 		@param user_nifi_conf: User configurations related to NIFI
 		@type user_nifi_conf: dict  
 		@param data_path: Path of files to be transfered
-		@type data_path: str  
+		@type data_path: str 
+		@param conf_res: Results configuration
+		@type conf_res: dict   
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		'''
 		
 		try:
-			if not user_nifi_conf['archname']:	# Just in case archive file name is not given
-				user_nifi_conf['archname']='nifi.zip'
-			archname=os.path.join(data_path,user_nifi_conf['archname'])	# Name and path of the compressed results file
-			with ZipFile(archname, 'w') as myzip:
-				for path,dir,f_res in os.walk(data_path):
-					for f in f_res:
-						myzip.write(os.path.join(path,f))
+			if user_nifi_conf['transfer']:
+
+				# Copy the results directory to a user_name directory, under the results directory, if not already exists
+				shutil.copytree(data_path, os.path.join(data_path,user_nifi_conf['archname']))
+				
+				# Compress the created user_name directory
+				shutil.make_archive(user_nifi_conf['archname'], 'zip', data_path, os.path.join(data_path,user_nifi_conf['archname']))
+				
 		except:
 			result='Error: "nifiTransfer" function has error(s): '
 			if flog:
