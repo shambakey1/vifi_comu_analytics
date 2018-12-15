@@ -1148,13 +1148,13 @@ class vifi():
 							for ser in conf_in['services']:
 								#HERE
 								# Check if the service still needs to iterate
-								while self.serIterate(iter_conf=ser['iterative']):
+								while self.serIterate(iter_conf=conf_in['services'][ser]['iterative']):
 																
 									# Initialize temporary service status to record status of created service 
 									tmp_ser_stat=False
 									
 									# Check required service name uniqueness (Just a precaution, as the request name- which should also be the service name- must be unique when the user made the request)
-									service_name=self.checkSerName(ser=ser,iter_no=ser['iterative']['max_rep'],client=client)
+									service_name=self.checkSerName(ser=ser,iter_no=conf_in['services'][ser]['iterative']['max_rep'],client=client)
 									if not service_name:
 										flog.write("Error: Another service (i.e., request) with the same name, "+request+", exists at "+str(time.time())+"\n")
 										#TODO: move to failed. In the future, another service name should be generated if desired
