@@ -731,6 +731,9 @@ class vifi():
 				# Move the compressed file under the results directory
 				shutil.move(user_nifi_conf['archname']+".zip", data_path)
 				
+				# Remove the created user_name directory
+				shutil.rmtree(os.path.join(data_path,user_nifi_conf['archname']), ignore_errors=True)
+				
 		except:
 			result='Error: "nifiTransfer" function has error(s): '
 			if flog:
