@@ -629,7 +629,11 @@ class vifi():
 				traceback.print_exc()
 				
 	
+<<<<<<< HEAD
 	def checkSerName(self,ser:str='',iter_no:int=1,client:docker.client.DockerClient=None,flog:TextIOWrapper=None)->str:
+=======
+	def checkSerName(self,client:docker.client.DockerClient,ser:str='',iter_no:int=1,flog:TextIOWrapper=None)->str:
+>>>>>>> branch 'master' of https://melshamb@bitbucket.org/vifi-uncc/vifi_comu_analytics.git
 		''' Check if required service name is unique. In case of iterative service, a modified service name is returned.
 		@todo: Currently, if service name is not unique, the new service is revoked. In the future, a new name should be assigned to the service  
 		@param ser: Service name to check its uniqueness
