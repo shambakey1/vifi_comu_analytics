@@ -1138,11 +1138,11 @@ class vifi():
 								#TODO: if this situation continues, then move to failed
 								continue
 							
-							# Create a 'results' folder in current request (if not already exists) to keep output files. Otherwise, create a 'results' folder with new ID
+							# Create a 'results' folder in current request (if not already exists) to keep output files.
 							req_res_path_per_request=conf['domains']['req_res_path_per_request']['name']
-							if os.path.exists(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request)):
-								req_res_path_per_request=req_res_path_per_request+"_"+str(uuid.uuid1())
-							os.mkdir(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request))	# To keep only required result files to be further processed or transfered.
+							if not os.path.exists(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request)):
+								#req_res_path_per_request=req_res_path_per_request+"_"+str(uuid.uuid1())
+								os.mkdir(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request))	# To keep only required result files to be further processed or transfered.
 							
 							# Traverse all services of the current request
 							for ser in conf_in['services']:
