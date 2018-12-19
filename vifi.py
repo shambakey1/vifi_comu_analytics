@@ -187,9 +187,9 @@ class vifi():
 		@type uname: str
 		@param upass: Prometheus user password
 		@type upass: str
-		@param write_to_file: If set, then write output metric(s) values to specified file if one is specified by @fname under specified path given by @fname_path. If @fname is not specified, then create separate file for each metric.
+		@param write_to_file: If set_i, then write output metric(s) values to specified file if one is specified by @fname under specified path given by @fname_path. If @fname is not specified, then create separate file for each metric.
 		@type write_to_file: bool
-		@param fname: File name to record output metric(s) values under specified path given by @fname_path. If not specified while @write_to_file is set, then a separate file is created for each metric.
+		@param fname: File name to record output metric(s) values under specified path given by @fname_path. If not specified while @write_to_file is set_i, then a separate file is created for each metric.
 		@type fname: str
 		@param fname_path: Path of @fname. Defaults to current directory
 		@type fname_path: str
@@ -606,7 +606,7 @@ class vifi():
 	
 	def checkDataOpt(self,conf:dict, user_conf:dict,flog:TextIOWrapper=None)->bool:
 		''' Check if all user required data can be mounted with user required options (e.g., mount data in write mode)
-		@param conf: VIFI Node configuration dictionary for the specific set
+		@param conf: VIFI Node configuration dictionary for the specific set_i
 		@type conf: dict  
 		@param user_conf: User configuration file
 		@type user_conf: dict  
@@ -726,10 +726,7 @@ class vifi():
 				shutil.copytree(data_path, os.path.join(data_path,user_nifi_conf['archname']))
 				
 				# Compress the created user_name directory
-				shutil.make_archive(user_nifi_conf['archname'], 'zip', data_path, os.path.join(data_path,user_nifi_conf['archname']))
-				
-				# Move the compressed file under the results directory
-				shutil.move(user_nifi_conf['archname']+".zip", data_path)
+				shutil.make_archive(os.path.join(data_path,user_nifi_conf['archname']), 'zip', data_path, user_nifi_conf['archname'])
 				
 				# Remove the created user_name directory
 				shutil.rmtree(os.path.join(data_path,user_nifi_conf['archname']), ignore_errors=True)
@@ -776,7 +773,7 @@ class vifi():
 		@see https://www.tutorialspoint.com/How-to-change-the-permission-of-a-directory-using-Python
 		@param path: Top path to change permissions
 		@type path: str
-		@param mode: Permissions mode to set
+		@param mode: Permissions mode to set_i
 		@type mode: Oct    
 		'''
 		
@@ -800,7 +797,7 @@ class vifi():
 				traceback.print_exc()
 			
 	def unpackCompressedRequests(self,conf:dict=None,sets:List[str]=None,flog:TextIOWrapper=None)->None:
-		''' Unpack any compressed requests under specified set(s) (i.e., (sub)workflow(s))
+		''' Unpack any compressed requests under specified set_i(s) (i.e., (sub)workflow(s))
 		@param conf: VIFI configuration file
 		@type conf: dict
 		@param sets: List of required sets (i.e., (sub)workflow(s)) to unpack incoming requests. Defaults to all sets if None is specified
@@ -824,11 +821,11 @@ class vifi():
 				
 			# Traverse through all sets
 			for set in sets:
-				# Determine path to compressed requests under specified set
+				# Determine path to compressed requests under specified set_i
 				comp_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
 									conf['domains']['script_path_in']['name'])
 				
-				# List all requests under current set
+				# List all requests under current set_i
 				reqs=os.listdir(comp_path)
 				
 				# Unpack compressed files only, then remove the compressed file after extraction
@@ -1051,7 +1048,7 @@ class vifi():
 		''' VIFI request analysis and processing procedure for list of sets (i.e., (sub)workflows). The default 
 		processing behavior of 'vifiRun' is to keep incoming requests at specific locations, then run them as \
 		containerized applications in container cluster (e.g., Docker swarm). The default processing behavior can \
-		change if the set specifies another function to use in the configuration file
+		change if the set_i specifies another function to use in the configuration file
 		@param sets: List of sets (i.e., (sub)workflows) to run (i.e., receive and process requests)
 		@type sets: List[str]
 		@param request_in: List of users' requests within specified @sets to be processed (i.e., path to request folder)
@@ -1076,7 +1073,7 @@ class vifi():
 				sets=conf['domains']['sets']
 			# Traverse through required sets
 			for set in sets:	
-			# Check if required set exists
+			# Check if required set_i exists
 				if set in conf['domains']['sets']:
 					### INITIALIZE USER PARAMETERS (APPLICABLE FOR ANY USER) ###
 					conf_file_name=conf['user_conf']['conf_file_name']
@@ -1096,27 +1093,27 @@ class vifi():
 					### LOGGING PARAMETERS ###
 					flog_path=os.path.join(log_path,"out.log")
 					flog = open(flog_path, 'a')
-					flog.write("Scheduled by VIFI Orchestrator for set "+set+" at "+str(time.time())+"\n")
+					flog.write("Scheduled by VIFI Orchestrator for set_i "+set+" at "+str(time.time())+"\n")
 							
 					### IF DOCKER IS USED FOR THIS SET, THEN INITIALIZE DEFAULT DOCKER PARAMETERS ###
 					### SOME DOCKER PARAMETERS CAN BE OVERRIDEN BY END USER IF ALLOWED ###
 					if 'docker' in conf['domains']['sets'][set] and conf['domains']['sets'][set]['docker']:
 						docker_img_set=conf['domains']['sets'][set]['docker']['docker_img']	# Set of allowed docker images
-						docker_rep=conf['domains']['sets'][set]['docker']['docker_rep']	# Maximum number of tasks that can be run by any user for this specific set
+						docker_rep=conf['domains']['sets'][set]['docker']['docker_rep']	# Maximum number of tasks that can be run by any user for this specific set_i
 						ser_check_thr=conf['domains']['sets'][set]['docker']['ttl'] # Default ttl for each (Docker) service
 						client=docker.from_env()
 					else:
 						print('Error: No containerization technique and/or stand alone service is specified to run (sub)workflow '+set)
 						return
 					
-					# Acquire all requests under current set if none provided
+					# Acquire all requests under current set_i if none provided
 					if not request_in:
 						request_in=os.listdir(script_path_in)
 						
 					### USE PROVIDED SET FUNCTION IF EXISTS ###
 					set_fun=conf['domains']['sets'][set]['set_function']
 					if set_fun:
-						#TODO: Currently, only default set behavior is used
+						#TODO: Currently, only default set_i behavior is used
 						pass
 					else:
 						### LOOP THROUGH REQUESTS AND PROCESS THEM (CURENTLY PROCESSING LOCATION IS NFS SHARED) ###
@@ -1195,12 +1192,12 @@ class vifi():
 										continue
 									
 									# Check available task number for current service (VIFI Node can limit concurrent number of running tasks for one service)
-									task_no=self.setServiceNumber(docker_rep=docker_rep, user_rep=conf_in['services'][ser]['tasks'])	# set number of service tasks to allowed number
+									task_no=self.setServiceNumber(docker_rep=docker_rep, user_rep=conf_in['services'][ser]['tasks'])	# set_i number of service tasks to allowed number
 									if task_no!=conf_in['services'][ser]['tasks']:
 										flog.write("Warning: Number of tasks for service "+service_name+" in request "+str(request)+" will be "+str(task_no)+" at "+str(time.time())+"\n")
 										
 									# Check time threshold to check service completeness
-									ser_ttl=self.setServiceThreshold(ser_check_thr, conf_in['services'][ser]['ser_check_thr'])	# set ttl to allowed value
+									ser_ttl=self.setServiceThreshold(ser_check_thr, conf_in['services'][ser]['ser_check_thr'])	# set_i ttl to allowed value
 									if ser_ttl!=conf_in['services'][ser]['ser_check_thr']:
 										flog.write("Warning: Service check threshold for request "+str(request)+" will be "+str(ser_ttl)+" at "+str(time.time())+"\n")
 									
@@ -1295,7 +1292,7 @@ class vifi():
 							self.req_list.clear()
 								
 				else:
-					print('Error: Specified set '+set+' does not exist')
+					print('Error: Specified set_i '+set+' does not exist')
 		except:
 			result='Error: "vifiRun" function has error(s): '
 			if flog:
@@ -1313,10 +1310,10 @@ class vifi():
 		import time
 		from .vifi import vifi
 		
-		set='JPL_cordex'
+		set_i='JPL_cordex'
 		s=vifi('vifi_config.yaml')
 		while(True):
-			s.unpackCompressedRequests(sets=[set])
-			s.vifiRun(sets=[set])
+			s.unpackCompressedRequests(sets=[set_i])
+			s.vifiRun(sets=[set_i])
 			time.sleep(1)
 		
