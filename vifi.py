@@ -1235,14 +1235,17 @@ class vifi():
 										# Copy required results, if any, to specified destinations
 										if conf_in['services'][ser]['results']:
 											for f_res in conf_in['services'][ser]['results']:
-												# Local copy of required final results (Just in case they are needed in the future)
-												if os.path.isfile(os.path.join(script_processed,f_res)):
-													shutil.copy(os.path.join(script_processed,f_res),os.path.join(script_processed,req_res_path_per_request))
-												elif os.path.isdir(os.path.join(script_processed,f_res)):
-													shutil.copytree(os.path.join(script_processed,f_res),os.path.join(script_processed,req_res_path_per_request,f_res))
+												# Move required final results (Just in case they are needed in the future)
+												if os.path.exists(os.path.join(script_processed,f_res)):
+													shutil.move(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request))
 												else:
 													flog.write("Failed to locally copy result "+os.path.join(script_processed,f_res)+" at "+repr(time.time())+"\n")
-										
+													'''
+													if os.path.isfile(os.path.join(script_processed,f_res)):
+														shutil.copy(os.path.join(script_processed,f_res),os.path.join(script_processed,req_res_path_per_request))
+													elif os.path.isdir(os.path.join(script_processed,f_res)):
+														shutil.copytree(os.path.join(script_processed,f_res),os.path.join(script_processed,req_res_path_per_request,f_res))
+													'''
 										
 										# Delete service, if required, to release resource
 										try:
