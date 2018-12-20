@@ -832,6 +832,19 @@ class vifi():
 				for req in reqs:
 					# Unpack file according to file extension
 					if req.endswith('.zip'):
+						
+						# Get the request name without extension
+						req_name=os.path.split(os.path.basename(req))[0]
+						
+						# Get the path to finished requests
+						script_path_out=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
+										conf['domains']['script_path_out']['name'])
+						
+						# If a directory exists in the 'finished' with the same name, then move it to working directory. Then extract the compressed file to update the contents of the retrieved directory
+						if os.path.exists(os.path.join(script_path_out,req_name)):
+							shutil.move(os.path.join(script_path_out,req_name), os.path.join(comp_path,req_name))
+						
+						# Now, extract the compressed request
 						with ZipFile(os.path.join(comp_path,req)) as f:
 							f.extractall(comp_path)
 					
@@ -1237,7 +1250,7 @@ class vifi():
 											for f_res in conf_in['services'][ser]['results']:
 												# Move required final results (Just in case they are needed in the future)
 												if os.path.exists(os.path.join(script_processed,f_res)):
-													shutil.move(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request))
+													shutil.move(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request,f_res))
 												else:
 													flog.write("Failed to locally copy result "+os.path.join(script_processed,f_res)+" at "+repr(time.time())+"\n")
 													'''
