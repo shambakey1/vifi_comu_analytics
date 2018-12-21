@@ -1296,6 +1296,19 @@ class vifi():
 								shutil.move(script_processed,script_finished)
 								self.req_list[request]['status']='success'
 								flog.write("Request "+request+" finished at "+repr(req_end_time)+"\n")
+								
+								# Move final results to final destination
+								if conf_in['fin_dest']['transfer']:
+									
+									# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
+									if conf_in['fin_dest']['s3']['transfer'] and conf_in['fin_dest']['s3']['bucket']:	  # s3_transfer is True and s3_buc has some value
+										self.s3Transfer(conf_in['fin_dest']['s3'], os.path.join(script_finished,req_res_path_per_request))
+										flog.write("Transfered final results to S3 bucket at "+repr(time.time())+"\n")
+									
+									# If NIFI is enabled, then transfer required results using NIFI 
+									if conf_in['fin_dest']['nifi']['transfer']:
+										self.nifiTransfer(conf_in['fin_dest']['nifi']['transfer'],os.path.join(script_finished,req_res_path_per_request))
+										flog.write("Ready to be transfered by NIFI at "+repr(time.time())+"\n")
 							else:
 								shutil.move(script_processed,script_failed)
 								self.req_list[request]['status']='fail'
