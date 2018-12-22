@@ -1039,23 +1039,22 @@ class vifi():
 				
 			return None
 		
-	def serIterate(self,iter_conf:dict=None)-> bool:
+	def serIterate(self,iter_conf:dict=None,ser_it_no:int=1)-> bool:
 		''' Determine if it is required to repeat the service again. If no configuration is given, then the service is not repeated any more.
 		NOTE: Current implementation just checks that maximum number of iterations has not been exceeded. Future implementation may encounter other conditions.
 		@param iter_conf: Service configuration for the iterations
 		@type iter_conf: dict
+		@param ser_it_no: Current service iteration number. Incremented each time the service runs
+		@type:  int
 		@return: True if service needs to be repeated. Otherwise, False
 		@rtype: bool
 		'''
 		
 		if iter_conf:
-			if iter_conf['max_rep']>0:
-				iter_conf['max_rep']-=1
+			if ser_it_no<iter_conf['max_rep']:
 				return True
-			else:
-				return False
-		else:
-			return False
+		
+		return False
 		
 	def vifiRun(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)->None:
 		''' VIFI request analysis and processing procedure for list of sets (i.e., (sub)workflows). The default 
@@ -1159,9 +1158,11 @@ class vifi():
 							
 							# Traverse all services of the current request
 							for ser in conf_in['services']:
-								#HERE
+								# Set current service iteration
+								ser_it=0
+								
 								# Check if the service still needs to iterate
-								while self.serIterate(iter_conf=conf_in['services'][ser]['iterative']):
+								while self.serIterate(iter_conf=conf_in['services'][ser]['iterative'],ser_it_no=ser_it):
 																
 									# Initialize temporary service status to record status of created service 
 									tmp_ser_stat=False
@@ -1277,6 +1278,8 @@ class vifi():
 											self.nifiTransfer(conf_in['services'][ser]['nifi'],os.path.join(script_processed,req_res_path_per_request))
 											flog.write("Ready to be transfered by NIFI at "+repr(time.time())+"\n")
 										
+									# Update service iteration number
+									ser_it+=1
 								else:
 									#TODO: If current service fails, then abort whole request. This behavior may need modifications in the future
 									self.req_list[request]['services'][service_name]={'end':'failed'}
