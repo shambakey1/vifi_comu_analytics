@@ -81,10 +81,6 @@ domains:
        climate_dir: "/home/ubuntu/climate"
        climate_dir_container: "/climate"
        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
-     nifi: 
-      transfer: True
-      host: 'http://localhost:8090/nifi-api' # NIFI host
-      registery: 
    JPL_cordex:
      name: jpl_cordex
      mode: 0o777
@@ -106,10 +102,6 @@ domains:
          registery: "https://hub.docker.com/r/shambakey1/ocw_cordex/"
        docker_rep: "any"
        ttl: 3600  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
-     nifi: 
-      transfer: True
-      host: 'http://localhost:8090/nifi-api' # NIFI host
-      registery: 
    AST:
      name: ast
      mode: 0o777
@@ -123,10 +115,6 @@ domains:
          registery: "https://hub.docker.com/r/shambakey1/python/"
        docker_rep: "any"
        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
-     nifi: 
-      transfer: True
-      host: 'http://localhost:8090/nifi-api' # NIFI host
-      registery: 
    SHBE:
      name: shbe
      mode: 0o777
@@ -144,10 +132,6 @@ domains:
          registery: "https://hub.docker.com/r/shambakey1/python/"
        docker_rep: "any"
        ttl: 300  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
-     nifi: 
-      transfer: True
-      host: 'http://localhost:8090/nifi-api' # NIFI host
-      registery: 
    transferlearning1:
      name: transferlearning1
      mode: 0o777
@@ -165,8 +149,4 @@ domains:
         registery: "https://hub.docker.com/r/shambakey1/vifi_astronomy/"
       docker_rep: "any"
       ttl: 3600  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
-     nifi: 
-      transfer: True
-      host: 'http://localhost:8090/nifi-api' # NIFI host
-      registery: 
       
