@@ -14,6 +14,8 @@ fin_dest: # Final destination to transfer final results
   transfer: False 
   archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
   archtype: 'zip'
+  target_uri:  # Target NIFI remote process group to transfer results file
+  target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
 services:                    # Group of required services for current request. Thus, a single request (to a specified (sub)workflow) consists of zero or more services. The services can be dependent or independent 
  ocw_cordex_stg1:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
@@ -58,6 +60,8 @@ services:                    # Group of required services for current request. T
     transfer: False 
     archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
     archtype: 'zip'
+    target_uri:  # Target NIFI remote process group to transfer results file
+    target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group  
  
  ocw_cordex_stg2:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
@@ -101,4 +105,6 @@ services:                    # Group of required services for current request. T
     transfer: False 
     archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
     archtype: 'zip'
+    target_uri:  # Target NIFI remote process group to transfer results file
+    target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
     

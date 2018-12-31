@@ -713,8 +713,8 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
-	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,pg_name:str,tr_res_temp_name:str='tr_results_template', \
-					target_uri:str=None, tr_res_remote_port:str='null requests', flog:TextIOWrapper=None)->None:
+	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,pg_name:str,tr_res_temp_name:str='tr_res_temp', \
+					flog:TextIOWrapper=None)->None:
 		''' Transfer required results as a compressed zip file using NIFI
 		NOTE: Current implementation just creates the compressed file to be transfered by NIFI. Current implementation 
 		does not transfer the file by itself. The transfer process is done by NIFI workflow design
@@ -724,12 +724,8 @@ class vifi():
 		@type data_path: str 
 		@param pg_name: NIFI Processor group name corresponding to required set
 		@type pg_name: str 
-		@param tr_res_temp_name: NIFI Transfer results template name
+		@param tr_res_temp_name: NIFI Transfer results template name. Defaults to 'tr_res_temp' template
 		@type tr_res_temp_name: str 
-		@param target_uri: The target URI of the remote site to transfer results
-		@type target_uri: str
-		@param tr_res_remote_port: Input port of the remote process group. Defaults to 'null requests' input port which acts like a dummy port
-		@type tr_res_remote_port: str 
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		'''
@@ -769,8 +765,8 @@ class vifi():
 				rpg_api=RemoteProcessGroupsApi()
 				
 				# Specify the target URI for the remote site and update the remote site
-				tr_res_remote.component.target_uri=target_uri
-				tr_res_remote.component.target_uris=target_uri
+				tr_res_remote.component.target_uri=user_nifi_conf['target_uri']
+				tr_res_remote.component.target_uris=user_nifi_conf['target_uri']
 				rpg_api.update_remote_process_group(tr_res_remote.id, tr_res_remote)
 				
 				# Update the reference to the modified remote process group
@@ -783,7 +779,7 @@ class vifi():
 				
 				# Retrieve information about the required input port of the remote process group. This step should be done after updating the target_uri(s) of the remote process group
 				for k in tr_res_remote.component.contents.input_ports:
-					if k.name==tr_res_remote_port:
+					if k.name==user_nifi_conf['target_remote_input_port']:
 						req_remote_port=k
 						break
 				
@@ -841,6 +837,8 @@ class vifi():
 				# Disable transmission of the remote process group and update reference to the remote process group
 				tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'STOPPED','disconnectedNodeAcknowledged':True}
 				rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
+				while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
+					pass
 				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 				
 				# Stop the 'get results' processor and update the reference to the 'get results' processor
@@ -1402,8 +1400,11 @@ class vifi():
 										
 										# If NIFI is enabled, then transfer required results using NIFI 
 										if conf_in['services'][ser]['nifi']['transfer']:
-											self.nifiTransfer(conf_in['services'][ser]['nifi'],os.path.join(script_processed,req_res_path_per_request))
-											flog.write("Ready to be transfered by NIFI at "+repr(time.time())+"\n")
+											self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
+															data_path=os.path.join(script_processed,req_res_path_per_request), \
+															pg_name=conf_in['services'][ser], \
+															tr_res_temp_name='tr_res_temp')
+											flog.write("Intermediate results transfered by NIFI at "+repr(time.time())+"\n")
 										
 									# Update service iteration number
 									ser_it+=1
@@ -1437,8 +1438,11 @@ class vifi():
 									
 									# If NIFI is enabled, then transfer required results using NIFI 
 									if conf_in['fin_dest']['nifi']['transfer']:
-										self.nifiTransfer(conf_in['fin_dest']['nifi']['transfer'],os.path.join(script_finished,req_res_path_per_request))
-										flog.write("Ready to be transfered by NIFI at "+repr(time.time())+"\n")
+										self.nifiTransfer(user_nifi_conf=conf_in['fin_dest']['nifi']['transfer'], \
+															data_path=os.path.join(script_finished,req_res_path_per_request), \
+															pg_name=conf_in['userid'], \
+															tr_res_temp_name='tr_res_temp')
+										flog.write("Final results transfered by NIFI at "+repr(time.time())+"\n")
 							else:
 								shutil.move(script_processed,script_failed)
 								self.req_list[request]['status']='fail'
