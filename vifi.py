@@ -813,13 +813,6 @@ class vifi():
 					pass
 				
 				# Enable transmission of the remote process group to finish transfer of the results file
-				'''
-				tr_res_remote.component.transmitting=True
-				rpg_api.update_remote_process_group(tr_res_remote.id,tr_res_remote)
-				while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
-					pass
-				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
-				'''
 				tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'TRANSMITTING','disconnectedNodeAcknowledged':True}
 				rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
 				while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
