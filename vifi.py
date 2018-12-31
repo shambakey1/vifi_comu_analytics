@@ -5,7 +5,12 @@ Created on Mar 29, 2018
 @contact: shambakey1@gmail.com
 '''
 
-import yaml, time, os, sys, shutil, json, uuid, requests, docker, traceback
+import yaml, time, os, sys, shutil, json, uuid, requests, docker, traceback, copy
+import nipyapi
+from nipyapi import canvas, templates
+from nipyapi.nifi.apis.remote_process_groups_api import RemoteProcessGroupsApi	
+from nipyapi.nifi.apis.connections_api import ConnectionsApi
+#from nipyapi.nifi.apis.process_groups_api import ProcessGroupsApi
 import pandas as pd
 import docker.models
 from typing import List
@@ -30,6 +35,7 @@ class vifi():
 		self.vifi_conf_f=''	# Path to VIFI configuration file for current VIFI instance
 		self.vifi_conf={}	# VIFI configuration dictionary for current VIFI instance
 		self.req_list={}	# Dictionary of created requests by current VIFI Node
+		self.nifi_tr_res_flows=[]	# List of deployed NIFI templates to transfer results between NIFI remote sites
 
 			
 		# Load VIFI configuration file
@@ -707,14 +713,23 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
-	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,flog:TextIOWrapper=None)->None:
+	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,pg_name:str,tr_res_temp_name:str='tr_results_template', \
+					target_uri:str=None, tr_res_remote_port:str='null requests', flog:TextIOWrapper=None)->None:
 		''' Transfer required results as a compressed zip file using NIFI
 		NOTE: Current implementation just creates the compressed file to be transfered by NIFI. Current implementation 
 		does not transfer the file by itself. The transfer process is done by NIFI workflow design
 		@param user_nifi_conf: User configurations related to NIFI
 		@type user_nifi_conf: dict  
-		@param data_path: Path of files to be transfered
+		@param data_path: Directory path of file to be transfered
 		@type data_path: str 
+		@param pg_name: NIFI Processor group name corresponding to required set
+		@type pg_name: str 
+		@param tr_res_temp_name: NIFI Transfer results template name
+		@type tr_res_temp_name: str 
+		@param target_uri: The target URI of the remote site to transfer results
+		@type target_uri: str
+		@param tr_res_remote_port: Input port of the remote process group. Defaults to 'null requests' input port which acts like a dummy port
+		@type tr_res_remote_port: str 
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		'''
@@ -730,6 +745,98 @@ class vifi():
 				
 				# Remove the created user_name directory
 				shutil.rmtree(os.path.join(data_path,user_nifi_conf['archname']), ignore_errors=True)
+				
+				# Retrieve processor group for the specified set
+				set_pg=canvas.get_process_group(pg_name)
+				
+				# Retrieve transfer results template
+				tr_res_temp=templates.get_template_by_name(tr_res_temp_name)
+				
+				# Deploy the transfer results template and keep a reference for it
+				tr_res_flow=templates.deploy_template(set_pg.id,tr_res_temp.id)
+				self.nifi_tr_res_flows.append(tr_res_flow)
+				
+				# A reference to 'get result file' processor
+				tr_res_get_results=tr_res_flow.flow.processors[0]
+				
+				# A reference to the 'remote site' to transfer results
+				tr_res_remote=tr_res_flow.flow.remote_process_groups[0]
+				
+				# A reference to the connection between 'get results file' processor and the remote process group
+				tr_res_conn=tr_res_flow.flow.connections[0]
+				
+				# Create an instance of RemoteProcessGroupsApi to update the remote process group
+				rpg_api=RemoteProcessGroupsApi()
+				
+				# Specify the target URI for the remote site and update the remote site
+				tr_res_remote.component.target_uri=target_uri
+				tr_res_remote.component.target_uris=target_uri
+				rpg_api.update_remote_process_group(tr_res_remote.id, tr_res_remote)
+				
+				# Update the reference to the modified remote process group
+				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
+				
+				# Create an instance of the ConnectionsApi
+				conn_api=ConnectionsApi()
+				
+				# Retrieve information about the required input port of the remote process group. This step should be done after updating the target_uri(s) of the remote process group
+				for k in tr_res_remote.component.contents.input_ports:
+					if k.name==tr_res_remote_port:
+						req_remote_port=k
+						break
+				
+				# Modify the connection to the remote process group to reflect the correct input port
+				tr_res_conn.destination_id=req_remote_port.id
+				tr_res_conn.component.destination.id=req_remote_port.id
+				
+				# Update the connection to the required input port of the remote process group
+				conn_api.update_connection(tr_res_conn.id, tr_res_conn)
+				
+				# Update the reference to the connection to the remote process group
+				tr_res_conn=conn_api.get_connection(tr_res_conn.id)
+				
+				# Modify the 'get results' processor to indicate the path and the name of the compressed results file
+				tr_res_get_results.component.config.properties['Input Directory']=data_path
+				tr_res_get_results.component.config.properties['File Filter']=user_nifi_conf['archname']+'.zip'
+				
+				# Update the 'get results' processor with the new attributes
+				canvas.update_processor(tr_res_get_results, tr_res_get_results.component.config)
+				
+				# Update the reference to the 'get results' processor
+				tr_res_get_results=canvas.get_processor(tr_res_get_results.component.name)
+				
+				# Start the 'get results' processor to start transferring results file
+				canvas.schedule_processor(tr_res_get_results, True)
+				
+				# Enable transmission of the remote process group to finish transfer of the results file
+				tr_res_remote.component.transmitting=True
+				rpg_api.update_remote_process_group(tr_res_remote.id,tr_res_remote)
+				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
+				
+				tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'TRANSMITTING','disconnectedNodeAcknowledged':True}
+				rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
+				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
+				
+				# Check that the results file has been transmitted
+				tr_res_conn=conn_api.get_connection(tr_res_conn.id)
+				while tr_res_conn.status.aggregate_snapshot.queued_count!='0' and tr_res_conn.status.aggregate_snapshot.output=='0 (0 bytes)':
+					pass
+				
+				### TIME TO REMOVE THE DEPLOYED TRANSFER REUSULTS TEMPLATE ###
+				
+				# Disable transmission of the remote process group and update reference to the remote process group
+				tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'STOPPED','disconnectedNodeAcknowledged':True}
+				rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
+				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
+				
+				# Stop the 'get results' processor and update the reference to the 'get results' processor
+				canvas.schedule_processor(tr_res_get_results, False)
+				
+				# Delete the 'get results' processor and the associated connection to the remote process group
+				canvas.delete_processor(tr_res_get_results,force=True)
+				
+				# Delete the remote process group
+				rpg_api.remove_remote_process_group(tr_res_remote.id,version=tr_res_remote.revision.version)
 				
 		except:
 			result='Error: "nifiTransfer" function has error(s): '
@@ -1117,6 +1224,12 @@ class vifi():
 					else:
 						print('Error: No containerization technique and/or stand alone service is specified to run (sub)workflow '+set)
 						return
+					
+					### IF NIFI IS ENABLED FOR THIS SET, THEN INITIALIZE NIFI HOST AND REGISTERY IF EXISTS ###
+					if conf['domains']['sets'][set]['nifi']['transfer']:
+						nipyapi.config.nifi_config.host = conf['domains']['sets'][set]['nifi']['host']
+						if conf['domains']['sets'][set]['nifi']['registery']:
+							nipyapi.config.registry_config.host = conf['domains']['sets'][set]['nifi']['registery']
 					
 					# Acquire all requests under current set_i if none provided
 					if not request_in:
