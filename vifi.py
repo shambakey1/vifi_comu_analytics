@@ -946,7 +946,7 @@ class vifi():
 					if req.endswith('.zip'):
 						
 						# Get the request name without extension
-						req_name=os.path.split(os.path.basename(req))[0]
+						req_name=os.path.splitext(os.path.basename(req))[0]
 						
 						# Get the path to finished requests
 						script_path_out=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
