@@ -65,6 +65,10 @@ domains:
    JPL:
      name: jpl
      mode: 0o777
+     nifi: 
+      transfer: True
+      host: 'http://localhost:8090/nifi-api'
+      registry: 'http://localhost:18080/nifi-registry-api'
      exist_ok: True  # If true, use alrady existing folder if one does
      terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
      set_function: # Function to use to process any request under current set. Thus, changing default request processing behavior (default bahavior is to keep incoming request, process them as containerized applications in a cluster, then transfer results to required destinations)
@@ -84,6 +88,10 @@ domains:
    JPL_cordex:
      name: jpl_cordex
      mode: 0o777
+     nifi: 
+      transfer: True
+      host: 'http://localhost:8090/nifi-api'
+      registry: 'http://localhost:18080/nifi-registry-api'
      exist_ok: True  # If true, use alrady existing folder if one does
      terminate: inf # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
      set_function: # Function to use to process any request under current set. Thus, changing default request processing behavior (default bahavior is to keep incoming request, process them as containerized applications in a cluster, then transfer results to required destinations)
@@ -105,6 +113,10 @@ domains:
    AST:
      name: ast
      mode: 0o777
+     nifi: 
+      transfer: True
+      host: 'http://localhost:8090/nifi-api'
+      registry: 'http://localhost:18080/nifi-registry-api'
      exist_ok: True  # If true, use alrady existing folder if one does
      terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
      set_function: # Function to use to process any request under current set. Thus, changing default request processing behavior (default bahavior is to keep incoming request, process them as containerized applications in a cluster, then transfer results to required destinations)
@@ -118,6 +130,10 @@ domains:
    SHBE:
      name: shbe
      mode: 0o777
+     nifi: 
+      transfer: True
+      host: 'http://localhost:8090/nifi-api'
+      registry: 'http://localhost:18080/nifi-registry-api'
      exist_ok: True  # If true, use alrady existing folder if one does
      terminate: 0 # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
      set_function: # Function to use to process any request under current set. Thus, changing default request processing behavior (default bahavior is to keep incoming request, process them as containerized applications in a cluster, then transfer results to required destinations)
@@ -135,6 +151,10 @@ domains:
    transferlearning1:
      name: transferlearning1
      mode: 0o777
+     nifi: 
+      transfer: True
+      host: 'http://localhost:8090/nifi-api'
+      registry: 'http://localhost:18080/nifi-registry-api'
      exist_ok: True  # If true, use alrady existing folder if one does
      terminate: inf # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
      set_function: # Function to use to process any request under current set. Thus, changing default request processing behavior (default bahavior is to keep incoming request, process them as containerized applications in a cluster, then transfer results to required destinations)

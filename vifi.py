@@ -1230,11 +1230,11 @@ class vifi():
 						print('Error: No containerization technique and/or stand alone service is specified to run (sub)workflow '+set)
 						return
 					
-					### IF NIFI IS ENABLED FOR THIS SET, THEN INITIALIZE NIFI HOST AND REGISTERY IF EXISTS ###
+					### IF NIFI IS ENABLED FOR THIS SET, THEN INITIALIZE NIFI HOST AND REGISTRY IF EXISTS ###
 					if conf['domains']['sets'][set]['nifi']['transfer']:
 						nipyapi.config.nifi_config.host = conf['domains']['sets'][set]['nifi']['host']
-						if conf['domains']['sets'][set]['nifi']['registery']:
-							nipyapi.config.registry_config.host = conf['domains']['sets'][set]['nifi']['registery']
+						if conf['domains']['sets'][set]['nifi']['registry']:
+							nipyapi.config.registry_config.host = conf['domains']['sets'][set]['nifi']['registry']
 					
 					# Acquire all requests under current set_i if none provided
 					if not request_in:
