@@ -714,7 +714,7 @@ class vifi():
 				traceback.print_exc()
 	
 	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,pg_name:str,tr_res_temp_name:str='tr_res_temp', \
-					flog:TextIOWrapper=None)->None:
+					flog:TextIOWrapper=None)->bool:
 		''' Transfer required results as a compressed zip file using NIFI
 		NOTE: Current implementation just creates the compressed file to be transfered by NIFI. Current implementation 
 		does not transfer the file by itself. The transfer process is done by NIFI workflow design
@@ -728,6 +728,8 @@ class vifi():
 		@type tr_res_temp_name: str 
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
+		@return: True to indicate success
+		@rtype: bool
 		'''
 		
 		try:
@@ -842,6 +844,9 @@ class vifi():
 				
 				# Delete the remote process group
 				rpg_api.remove_remote_process_group(tr_res_remote.id,version=tr_res_remote.revision.version)
+				
+				# Retun True to indicate transfer success
+				return True
 				
 		except:
 			result='Error: "nifiTransfer" function has error(s): '
@@ -1393,10 +1398,11 @@ class vifi():
 										
 										# If NIFI is enabled, then transfer required results using NIFI 
 										if conf_in['services'][ser]['nifi']['transfer']:
-											self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
+											while self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
 															data_path=os.path.join(script_processed,req_res_path_per_request), \
 															pg_name=conf_in['services'][ser], \
-															tr_res_temp_name='tr_res_temp')
+															tr_res_temp_name='tr_res_temp'):
+												pass	# Wait for the transfer to be done 
 											flog.write("Intermediate results transfered by NIFI at "+repr(time.time())+"\n")
 										
 									# Update service iteration number
@@ -1431,10 +1437,11 @@ class vifi():
 									
 									# If NIFI is enabled, then transfer required results using NIFI 
 									if conf_in['fin_dest']['nifi']['transfer']:
-										self.nifiTransfer(user_nifi_conf=conf_in['fin_dest']['nifi']['transfer'], \
+										while self.nifiTransfer(user_nifi_conf=conf_in['fin_dest']['nifi']['transfer'], \
 															data_path=os.path.join(script_finished,req_res_path_per_request), \
 															pg_name=conf_in['userid'], \
-															tr_res_temp_name='tr_res_temp')
+															tr_res_temp_name='tr_res_temp'):
+											pass	# Wait for the transfer to be done
 										flog.write("Final results transfered by NIFI at "+repr(time.time())+"\n")
 							else:
 								shutil.move(script_processed,script_failed)
