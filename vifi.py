@@ -1400,7 +1400,7 @@ class vifi():
 										if conf_in['services'][ser]['nifi']['transfer']:
 											while self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
 															data_path=os.path.join(script_processed,req_res_path_per_request), \
-															pg_name=conf_in['services'][ser], \
+															pg_name=set, \
 															tr_res_temp_name='tr_res_temp'):
 												pass	# Wait for the transfer to be done 
 											flog.write("Intermediate results transfered by NIFI at "+repr(time.time())+"\n")
@@ -1439,7 +1439,7 @@ class vifi():
 									if conf_in['fin_dest']['nifi']['transfer']:
 										while self.nifiTransfer(user_nifi_conf=conf_in['fin_dest']['nifi']['transfer'], \
 															data_path=os.path.join(script_finished,req_res_path_per_request), \
-															pg_name=conf_in['userid'], \
+															pg_name=set, \
 															tr_res_temp_name='tr_res_temp'):
 											pass	# Wait for the transfer to be done
 										flog.write("Final results transfered by NIFI at "+repr(time.time())+"\n")
