@@ -856,6 +856,9 @@ class vifi():
 			else:
 				print(result)
 				traceback.print_exc()
+				
+			# Return False to indicate transfer failure
+			return False
 		
 	def s3Transfer(self,user_s3_conf:dict,data_path:str,flog:TextIOWrapper=None)->None:
 		''' Transfer files to S3 bucket
@@ -1284,11 +1287,11 @@ class vifi():
 								# Set current service iteration
 								ser_it=0
 								
+								# Initialize temporary service status to record status of created service (True if service succeeds)
+								tmp_ser_stat=False
+								
 								# Check if the service still needs to iterate
 								while self.serIterate(iter_conf=conf_in['services'][ser]['iterative'],ser_it_no=ser_it):
-																
-									# Initialize temporary service status to record status of created service 
-									tmp_ser_stat=False
 									
 									# Check required service name uniqueness (Just a precaution, as the request name- which should also be the service name- must be unique when the user made the request)
 									service_name=self.checkSerName(ser=ser,iter_no=conf_in['services'][ser]['iterative']['max_rep'],client=client)
@@ -1377,12 +1380,6 @@ class vifi():
 													shutil.move(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request,f_res))
 												else:
 													flog.write("Failed to locally copy result "+os.path.join(script_processed,f_res)+" at "+repr(time.time())+"\n")
-													'''
-													if os.path.isfile(os.path.join(script_processed,f_res)):
-														shutil.copy(os.path.join(script_processed,f_res),os.path.join(script_processed,req_res_path_per_request))
-													elif os.path.isdir(os.path.join(script_processed,f_res)):
-														shutil.copytree(os.path.join(script_processed,f_res),os.path.join(script_processed,req_res_path_per_request,f_res))
-													'''
 										
 										# Delete service, if required, to release resource
 										try:
@@ -1398,16 +1395,25 @@ class vifi():
 										
 										# If NIFI is enabled, then transfer required results using NIFI 
 										if conf_in['services'][ser]['nifi']['transfer']:
-											while self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
+											if self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
 															data_path=os.path.join(script_processed,req_res_path_per_request), \
 															pg_name=set, \
 															tr_res_temp_name='tr_res_temp'):
-												pass	# Wait for the transfer to be done 
-											flog.write("Intermediate results transfered by NIFI at "+repr(time.time())+"\n")
-										
+												# NIFI transfer succeeded 
+												flog.write("Intermediate results transfer by NIFI succeeded at "+repr(time.time())+"\n")
+											else:
+												# NIFI transfer failed
+												flog.write("Intermediate results transfer by NIFI failed at "+repr(time.time())+"\n")
+												# TODO: should the user request be terminated? or just continue with future service(s) 
+									
+									else:
+										# Service failed
+										break	
+									
 									# Update service iteration number
 									ser_it+=1
-								else:
+									
+								if not tmp_ser_stat:
 									#TODO: If current service fails, then abort whole request. This behavior may need modifications in the future
 									self.req_list[request]['services'][service_name]={'end':'failed'}
 									flog.write("Failed service "+service_name+" for request "+request+" at "+repr(time.time())+"\n\n")
@@ -1437,12 +1443,15 @@ class vifi():
 									
 									# If NIFI is enabled, then transfer required results using NIFI 
 									if conf_in['fin_dest']['nifi']['transfer']:
-										while self.nifiTransfer(user_nifi_conf=conf_in['fin_dest']['nifi']['transfer'], \
+										if self.nifiTransfer(user_nifi_conf=conf_in['fin_dest']['nifi']['transfer'], \
 															data_path=os.path.join(script_finished,req_res_path_per_request), \
 															pg_name=set, \
 															tr_res_temp_name='tr_res_temp'):
-											pass	# Wait for the transfer to be done
-										flog.write("Final results transfered by NIFI at "+repr(time.time())+"\n")
+											# Wait for the transfer to be done
+											flog.write("Final results transfer by NIFI succeeded at "+repr(time.time())+"\n")
+										else:
+											# Final results transfer by NIFI failed
+											flog.write("Final results transfer by NIFI failed at "+repr(time.time())+"\n")
 							else:
 								shutil.move(script_processed,script_failed)
 								self.req_list[request]['status']='fail'
