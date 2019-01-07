@@ -5,7 +5,7 @@ Created on Mar 29, 2018
 @contact: shambakey1@gmail.com
 '''
 
-import yaml, time, os, sys, shutil, json, uuid, requests, docker, traceback, copy
+import yaml, time, os, sys, shutil, json, uuid, requests, docker, traceback, copy, select
 import nipyapi
 from nipyapi import canvas, templates
 from nipyapi.nifi.apis.remote_process_groups_api import RemoteProcessGroupsApi	
@@ -16,7 +16,10 @@ import docker.models
 from typing import List
 from zipfile import ZipFile
 from builtins import str, int
+from multiprocessing import Process
+from multiprocessing.managers import BaseManager
 from _io import TextIOWrapper
+import argparse
 
 class vifi():
 	'''
@@ -36,6 +39,7 @@ class vifi():
 		self.vifi_conf={}	# VIFI configuration dictionary for current VIFI instance
 		self.req_list={}	# Dictionary of created requests by current VIFI Node
 		self.nifi_tr_res_flows=[]	# List of deployed NIFI templates to transfer results between NIFI remote sites
+		self.stop=False	# If TRUE, the current VIFI instance stops
 
 			
 		# Load VIFI configuration file
@@ -46,9 +50,15 @@ class vifi():
 				print("Error: No VIFI configuration file has been passed to this instance")
 				sys.exit()
 		except:
-			result='Error: "VIFI constructor" function has error(s): '
+			result='Error: "VIFI constructor" function has error(vifi_server): '
 			print(result)
 			traceback.print_exc()
+	
+	def end(self):
+		''' Stop current VIFI instance
+		'''
+		
+		self.stop=True
 		
 	def load_conf(self,infile:str,flog:TextIOWrapper=None)->dict:
 		''' Loads user configuration file. "infile" is in JSON format
@@ -67,7 +77,7 @@ class vifi():
 			else:
 				print('Error: No user configuration file is specified')
 		except:
-			result='Error: "load_conf" function has error(s): '
+			result='Error: "load_conf" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -101,7 +111,7 @@ class vifi():
 				
 			return True
 		except:
-			result='Error: "CheckInputFiles" function has error(s): '
+			result='Error: "CheckInputFiles" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -144,7 +154,7 @@ class vifi():
 					json.dump(metrics_names, f)
 			return metrics_names # Return metrics names
 		except:
-			result='Error: "getPromMetricsNames" function has error(s): '
+			result='Error: "getPromMetricsNames" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -166,7 +176,7 @@ class vifi():
 			with open(metrics_f, 'r') as f:
 				return json.load(f)
 		except:
-			result='Error: "getMetricsNames" function has error(s): '
+			result='Error: "getMetricsNames" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -183,9 +193,9 @@ class vifi():
 		@type m: List[str] 
 		@param prom_path: Prometheus API url 
 		@type prom_path: str
-		@param start_t: Start time to collect metric's time series values (Unix Time Stamp). Defaults to current time. If not specified, the query is done at a single time instance specified by @end_t. At least @start_t and/or @end_t should be specified.
+		@param start_t: Start time to collect metric'vifi_server time series values (Unix Time Stamp). Defaults to current time. If not specified, the query is done at a single time instance specified by @end_t. At least @start_t and/or @end_t should be specified.
 		@type start_t: float 
-		@param end_t: End time to collect metric's time series values (Unix Time Stamp). Defaults to current time. If not specified, the query is done at a single time instance specified by @start_t. At least @start_t and/or @end_t should be specified.
+		@param end_t: End time to collect metric'vifi_server time series values (Unix Time Stamp). Defaults to current time. If not specified, the query is done at a single time instance specified by @start_t. At least @start_t and/or @end_t should be specified.
 		@type end_t: float   
 		@param step: Time step during query interval
 		@type step: int
@@ -193,15 +203,15 @@ class vifi():
 		@type uname: str
 		@param upass: Prometheus user password
 		@type upass: str
-		@param write_to_file: If set_i, then write output metric(s) values to specified file if one is specified by @fname under specified path given by @fname_path. If @fname is not specified, then create separate file for each metric.
+		@param write_to_file: If set_i, then write output metric(vifi_server) values to specified file if one is specified by @fname under specified path given by @fname_path. If @fname is not specified, then create separate file for each metric.
 		@type write_to_file: bool
-		@param fname: File name to record output metric(s) values under specified path given by @fname_path. If not specified while @write_to_file is set_i, then a separate file is created for each metric.
+		@param fname: File name to record output metric(vifi_server) values under specified path given by @fname_path. If not specified while @write_to_file is set_i, then a separate file is created for each metric.
 		@type fname: str
 		@param fname_path: Path of @fname. Defaults to current directory
 		@type fname_path: str
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)   
-		@return: Metric(s) values for the specified time interval at the specified steps, or at a specific time instance
+		@return: Metric(vifi_server) values for the specified time interval at the specified steps, or at a specific time instance
 		@rtype: dict
 		'''
 		#TODO: If start_t is not specified, then start query from the earliest possible timedate. But this depeneds on how long Prometheus stores data series, and the incremental step
@@ -238,7 +248,7 @@ class vifi():
 					
 			return res_values # Return metrics names
 		except:
-			result='Error: "getMetricsValues" function has error(s): '
+			result='Error: "getMetricsValues" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -255,7 +265,7 @@ class vifi():
 			else:
 				print('Current VIFI instance has no configuration')
 		except:
-			result='Error: "descVIFI" function has error(s): '
+			result='Error: "descVIFI" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -326,7 +336,7 @@ class vifi():
 				#os.makedirs(os.path.join(root_script_path,self.vifi_conf['domains']['sets'][d]['name'],req_res_path_per_request),exist_ok=req_res_path_per_request_exist)	
 
 		except:
-			result='Error: "loadVIFIConf" function has error(s): '
+			result='Error: "loadVIFIConf" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -367,7 +377,7 @@ class vifi():
 				time.sleep(1)
 			return False
 		except:
-			result='Error: "checkServiceComplete" function has error(s): '
+			result='Error: "checkServiceComplete" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -383,7 +393,7 @@ class vifi():
 		@type user_img: str
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper 
-		@return: Required image or None if user's required image cannot be vierified by VIFI Node
+		@return: Required image or None if user'vifi_server required image cannot be vierified by VIFI Node
 		@rtype: str      
 		'''
 	
@@ -393,7 +403,7 @@ class vifi():
 			else:
 				return None
 		except:
-			result='Error: "checkServiceImage" function has error(s): '
+			result='Error: "checkServiceImage" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -402,7 +412,7 @@ class vifi():
 				traceback.print_exc()
 	
 	def setServiceNumber(self,docker_rep:str,user_rep:int=None,flog:TextIOWrapper=None)->int:
-		''' Specify number of deployed tasks for user's request according to VIFI Node specifications and user's requirements
+		''' Specify number of deployed tasks for user'vifi_server request according to VIFI Node specifications and user'vifi_server requirements
 		@param docker_rep: Number of service tasks as specified by VIFI Node. If 'any', then VIFI Node allows any number of service tasks
 		@type docker_rep: str
 		@param  user_rep: Number of service tasks as required by user
@@ -426,7 +436,7 @@ class vifi():
 				else:
 					return int(docker_rep)	# User required number of tasks exceeds allowed number by VIFI Node. Thus, reduce number of tasks to that allowed by VIFI Node
 		except:
-			result='Error: "setServiceNumber" function has error(s): '
+			result='Error: "setServiceNumber" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -435,7 +445,7 @@ class vifi():
 				traceback.print_exc()
 	
 	def setServiceThreshold(self,ser_check_thr:str,user_thr:int=None,flog:TextIOWrapper=None)->int:
-		''' Specify time threshold (or ttl) to check completeness of user's required service(s)
+		''' Specify time threshold (or ttl) to check completeness of user'vifi_server required service(vifi_server)
 		@param ser_check_thr: Service check threshold (i.e., ttl) as specified by VIFI Node. If 'any', then VIFI Node allows infinite time to check service completeness
 		@type ser_check_thr: str
 		@param user_thr: Service check threshold (i.e., ttl) as required by user
@@ -459,7 +469,7 @@ class vifi():
 				else:
 					return int(ser_check_thr)	# Return maximum allowed threshold by VIFI Node as user requires more than what is allowed
 		except:
-			result='Error: "setServiceThreshold" function has error(s): '
+			result='Error: "setServiceThreshold" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -478,9 +488,9 @@ class vifi():
 		@type service_name: str
 		@param docker_rep: Number of service tasks
 		@type docker_rep: int
-		@param script_path_in: Parent path for user's request
+		@param script_path_in: Parent path for user'vifi_server request
 		@type script_path_in: str
-		@param request: Directory name of user's request
+		@param request: Directory name of user'vifi_server request
 		@type request: str
 		@param container_dir: Container directory
 		@type container_dir: str
@@ -494,9 +504,9 @@ class vifi():
 		@type script: str
 		@param docker_img: Required service image (Currently, docker image)
 		@type docker_img: str
-		@param docker_cmd: User's command to run within created service tasks (e.g., python)
+		@param docker_cmd: User'vifi_server command to run within created service tasks (e.g., python)
 		@type docker_cmd: str
-		@param user_args: User's arguments passed to @docker_cmd. Default is empty list
+		@param user_args: User'vifi_server arguments passed to @docker_cmd. Default is empty list
 		@type user_args: List[str]
 		@param ttl: Threshold time of the service (i.e., the time by which the service should have completed). It is recorded as one of the environment variables of the service
 		@type ttl: int  
@@ -518,7 +528,7 @@ class vifi():
 			# folder is mapped to the root directory in the container
 			if not container_dir:
 				container_dir=os.path.abspath(os.sep)
-			mnts=[os.path.join(script_path_in,request)+":"+container_dir+":rw"]	# Initialize list of mounts for user's request
+			mnts=[os.path.join(script_path_in,request)+":"+container_dir+":rw"]	# Initialize list of mounts for user'vifi_server request
 				
 			# Mount the data directories
 			for x in user_data_dir.keys():	# mount data physical path at VIFI Node to user specified paths
@@ -537,7 +547,7 @@ class vifi():
 								{'condition':'on-failure'},mounts=mnts,workdir=work_dir,env=envs,image=docker_img,\
 								command=docker_cmd+' '+script,args=user_args)
 		except:
-			result='Error: "createUserService" function has error(s): '
+			result='Error: "createUserService" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -580,7 +590,7 @@ class vifi():
 			
 			return True
 		except:
-			result='Error: "checkSerDep" function has error(s): '
+			result='Error: "checkSerDep" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -602,7 +612,7 @@ class vifi():
 		try:
 			return True
 		except:
-			result='Error: "checkFnDep" function has error(s): '
+			result='Error: "checkFnDep" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -626,7 +636,7 @@ class vifi():
 		try:
 			return True
 		except:
-			result='Error: "checkDataOpt" function has error(s): '
+			result='Error: "checkDataOpt" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -658,7 +668,7 @@ class vifi():
 			else:
 				return ser
 		except:
-			result='Error: "checkSerName" function has error(s): '
+			result='Error: "checkSerName" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -680,7 +690,7 @@ class vifi():
 		try:
 			return ser_name+str(uuid.uuid4())
 		except:
-			result='Error: "getSerName" function has error(s): '
+			result='Error: "getSerName" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -705,7 +715,7 @@ class vifi():
 			if term_time != 'inf':
 				client.services.get(ser_name).remove()
 		except:
-			result='Error: "delService" function has error(s): '
+			result='Error: "delService" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -733,123 +743,122 @@ class vifi():
 		'''
 		
 		try:
-			if user_nifi_conf['transfer']:
 
-				# Copy the results directory to a user_name directory, under the results directory, if not already exists
-				shutil.copytree(data_path, os.path.join(data_path,user_nifi_conf['archname']))
-				
-				# Compress the created user_name directory
-				shutil.make_archive(os.path.join(data_path,user_nifi_conf['archname']), 'zip', data_path, user_nifi_conf['archname'])
-				
-				# Remove the created user_name directory
-				shutil.rmtree(os.path.join(data_path,user_nifi_conf['archname']), ignore_errors=True)
-				
-				# Retrieve processor group for the specified set
-				set_pg=canvas.get_process_group(pg_name)
-				
-				# Retrieve transfer results template
-				tr_res_temp=templates.get_template_by_name(tr_res_temp_name)
-				
-				# Deploy the transfer results template and keep a reference for it
-				tr_res_flow=templates.deploy_template(set_pg.id,tr_res_temp.id)
-				self.nifi_tr_res_flows.append(tr_res_flow)
-				
-				# A reference to 'get result file' processor
-				tr_res_get_results=tr_res_flow.flow.processors[0]
-				
-				# A reference to the 'remote site' to transfer results
-				tr_res_remote=tr_res_flow.flow.remote_process_groups[0]
-				
-				# A reference to the connection between 'get results file' processor and the remote process group
-				tr_res_conn=tr_res_flow.flow.connections[0]
-				
-				# Create an instance of RemoteProcessGroupsApi to update the remote process group
-				rpg_api=RemoteProcessGroupsApi()
-				
-				# Specify the target URI for the remote site and update the remote site
-				tr_res_remote.component.target_uri=user_nifi_conf['target_uri']
-				tr_res_remote.component.target_uris=user_nifi_conf['target_uri']
-				rpg_api.update_remote_process_group(tr_res_remote.id, tr_res_remote)
-				
-				# Update the reference to the modified remote process group
-				while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
-					pass
-				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
-				
-				# Create an instance of the ConnectionsApi
-				conn_api=ConnectionsApi()
-				
-				# Retrieve information about the required input port of the remote process group. This step should be done after updating the target_uri(s) of the remote process group
-				for k in tr_res_remote.component.contents.input_ports:
-					if k.name==user_nifi_conf['target_remote_input_port']:
-						req_remote_port=k
-						break
-				
-				# Modify the connection to the remote process group to reflect the correct input port
-				tr_res_conn.destination_id=req_remote_port.id
-				tr_res_conn.component.destination.id=req_remote_port.id
-				
-				# Update the connection to the required input port of the remote process group
-				conn_api.update_connection(tr_res_conn.id, tr_res_conn)
-				
-				# Update the reference to the connection to the remote process group
-				while conn_api.get_connection(tr_res_conn.id).revision.version==tr_res_conn.revision.version:
-					pass
-				tr_res_conn=conn_api.get_connection(tr_res_conn.id)
-				
-				# Modify the 'get results' processor to indicate the path and the name of the compressed results file
-				tr_res_get_results.component.config.properties['Input Directory']=data_path
-				tr_res_get_results.component.config.properties['File Filter']=user_nifi_conf['archname']+'.zip'
-				
-				# Update the 'get results' processor with the new attributes
-				canvas.update_processor(tr_res_get_results, tr_res_get_results.component.config)
-				
-				# Update the reference to the 'get results' processor
-				while canvas.get_processor(tr_res_get_results.component.name).revision.version==tr_res_get_results.revision.version:
-					pass
-				tr_res_get_results=canvas.get_processor(tr_res_get_results.component.name)
-				
-				# Start the 'get results' processor to start transferring results file
-				canvas.schedule_processor(tr_res_get_results, True)
-				while canvas.get_processor(tr_res_get_results.component.name).revision.version==tr_res_get_results.revision.version:
-					pass
-				
-				# Enable transmission of the remote process group to finish transfer of the results file
-				tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'TRANSMITTING','disconnectedNodeAcknowledged':True}
-				rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
-				while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
-					pass
-				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
-				
-				
-				# Check that the results file has been transmitted
-				tr_res_conn=conn_api.get_connection(tr_res_conn.id)
-				while tr_res_conn.status.aggregate_snapshot.queued_count!='0' and tr_res_conn.status.aggregate_snapshot.output=='0 (0 bytes)':
-					pass
-				
-				### TIME TO REMOVE THE DEPLOYED TRANSFER REUSULTS TEMPLATE ###
-				
-				# Disable transmission of the remote process group and update reference to the remote process group
-				tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'STOPPED','disconnectedNodeAcknowledged':True}
-				rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
-				while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
-					pass
-				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
-				
-				# Stop the 'get results' processor and update the reference to the 'get results' processor
-				canvas.schedule_processor(tr_res_get_results, False)
-				
-				# Delete the 'get results' processor and the associated connection to the remote process group
-				canvas.delete_processor(tr_res_get_results,force=True)
-				
-				# Delete the remote process group
-				rpg_api.remove_remote_process_group(tr_res_remote.id,version=tr_res_remote.revision.version)
-				
-				# Retun True to indicate transfer success
-				return True
-				
+			# Copy the results directory to a user_name directory, under the results directory, if not already exists
+			shutil.copytree(data_path, os.path.join(data_path,user_nifi_conf['archname']))
+			
+			# Compress the created user_name directory
+			shutil.make_archive(os.path.join(data_path,user_nifi_conf['archname']), 'zip', data_path, user_nifi_conf['archname'])
+			
+			# Remove the created user_name directory
+			shutil.rmtree(os.path.join(data_path,user_nifi_conf['archname']), ignore_errors=True)
+			
+			# Retrieve processor group for the specified set
+			set_pg=canvas.get_process_group(pg_name)
+			
+			# Retrieve transfer results template
+			tr_res_temp=templates.get_template_by_name(tr_res_temp_name)
+			
+			# Deploy the transfer results template and keep a reference for it
+			tr_res_flow=templates.deploy_template(set_pg.id,tr_res_temp.id)
+			self.nifi_tr_res_flows.append(tr_res_flow)
+			
+			# A reference to 'get result file' processor
+			tr_res_get_results=tr_res_flow.flow.processors[0]
+			
+			# A reference to the 'remote site' to transfer results
+			tr_res_remote=tr_res_flow.flow.remote_process_groups[0]
+			
+			# A reference to the connection between 'get results file' processor and the remote process group
+			tr_res_conn=tr_res_flow.flow.connections[0]
+			
+			# Create an instance of RemoteProcessGroupsApi to update the remote process group
+			rpg_api=RemoteProcessGroupsApi()
+			
+			# Specify the target URI for the remote site and update the remote site
+			tr_res_remote.component.target_uri=user_nifi_conf['target_uri']
+			tr_res_remote.component.target_uris=user_nifi_conf['target_uri']
+			rpg_api.update_remote_process_group(tr_res_remote.id, tr_res_remote)
+			
+			# Update the reference to the modified remote process group
+			while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
+				pass
+			tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
+			
+			# Create an instance of the ConnectionsApi
+			conn_api=ConnectionsApi()
+			
+			# Retrieve information about the required input port of the remote process group. This step should be done after updating the target_uri(vifi_server) of the remote process group
+			for k in tr_res_remote.component.contents.input_ports:
+				if k.name==user_nifi_conf['target_remote_input_port']:
+					req_remote_port=k
+					break
+			
+			# Modify the connection to the remote process group to reflect the correct input port
+			tr_res_conn.destination_id=req_remote_port.id
+			tr_res_conn.component.destination.id=req_remote_port.id
+			
+			# Update the connection to the required input port of the remote process group
+			conn_api.update_connection(tr_res_conn.id, tr_res_conn)
+			
+			# Update the reference to the connection to the remote process group
+			while conn_api.get_connection(tr_res_conn.id).revision.version==tr_res_conn.revision.version:
+				pass
+			tr_res_conn=conn_api.get_connection(tr_res_conn.id)
+			
+			# Modify the 'get results' processor to indicate the path and the name of the compressed results file
+			tr_res_get_results.component.config.properties['Input Directory']=data_path
+			tr_res_get_results.component.config.properties['File Filter']=user_nifi_conf['archname']+'.zip'
+			
+			# Update the 'get results' processor with the new attributes
+			canvas.update_processor(tr_res_get_results, tr_res_get_results.component.config)
+			
+			# Update the reference to the 'get results' processor
+			while canvas.get_processor(tr_res_get_results.component.name).revision.version==tr_res_get_results.revision.version:
+				pass
+			tr_res_get_results=canvas.get_processor(tr_res_get_results.component.name)
+			
+			# Start the 'get results' processor to start transferring results file
+			canvas.schedule_processor(tr_res_get_results, True)
+			while canvas.get_processor(tr_res_get_results.component.name).revision.version==tr_res_get_results.revision.version:
+				pass
+			
+			# Enable transmission of the remote process group to finish transfer of the results file
+			tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'TRANSMITTING','disconnectedNodeAcknowledged':True}
+			rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
+			while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
+				pass
+			tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
+			
+			
+			# Check that the results file has been transmitted
+			tr_res_conn=conn_api.get_connection(tr_res_conn.id)
+			while tr_res_conn.status.aggregate_snapshot.queued_count!='0' and tr_res_conn.status.aggregate_snapshot.output=='0 (0 bytes)':
+				pass
+			
+			### TIME TO REMOVE THE DEPLOYED TRANSFER REUSULTS TEMPLATE ###
+			
+			# Disable transmission of the remote process group and update reference to the remote process group
+			tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'STOPPED','disconnectedNodeAcknowledged':True}
+			rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
+			while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
+				pass
+			tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
+			
+			# Stop the 'get results' processor and update the reference to the 'get results' processor
+			canvas.schedule_processor(tr_res_get_results, False)
+			
+			# Delete the 'get results' processor and the associated connection to the remote process group
+			canvas.delete_processor(tr_res_get_results,force=True)
+			
+			# Delete the remote process group
+			rpg_api.remove_remote_process_group(tr_res_remote.id,version=tr_res_remote.revision.version)
+			
+			# Retun True to indicate transfer success
+			return True
+			
 		except:
-			result='Error: "nifiTransfer" function has error(s): '
+			result='Error: "nifiTransfer" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -880,7 +889,7 @@ class vifi():
 					key_obj=user_s3_conf['path']+"/"+f
 					s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 		except:
-			result='Error: "s3Transfer" function has error(s): '
+			result='Error: "s3Transfer" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -908,19 +917,19 @@ class vifi():
 			os.chmod(root,mode)	
 					
 		except:
-			result='changePermissionsRecursive" function has error(s): '
+			result='changePermissionsRecursive" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
 			else:
 				print(result)
 				traceback.print_exc()
-			
+	
 	def unpackCompressedRequests(self,conf:dict=None,sets:List[str]=None,flog:TextIOWrapper=None)->None:
-		''' Unpack any compressed requests under specified set_i(s) (i.e., (sub)workflow(s))
+		''' Unpack any compressed requests under specified set_i(vifi_server) (i.e., (sub)workflow(vifi_server))
 		@param conf: VIFI configuration file
 		@type conf: dict
-		@param sets: List of required sets (i.e., (sub)workflow(s)) to unpack incoming requests. Defaults to all sets if None is specified
+		@param sets: List of required sets (i.e., (sub)workflow(vifi_server)) to unpack incoming requests. Defaults to all sets if None is specified
 		@type sets: List[str]  
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object) 
@@ -940,9 +949,9 @@ class vifi():
 				sets=conf['domains']['sets']
 				
 			# Traverse through all sets
-			for set in sets:
+			for dset in sets:
 				# Determine path to compressed requests under specified set_i
-				comp_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
+				comp_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
 									conf['domains']['script_path_in']['name'])
 				
 				# List all requests under current set_i
@@ -957,7 +966,7 @@ class vifi():
 						req_name=os.path.splitext(os.path.basename(req))[0]
 						
 						# Get the path to finished requests
-						script_path_out=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
+						script_path_out=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
 										conf['domains']['script_path_out']['name'])
 						
 						# If a directory exists in the 'finished' with the same name, then move it to working directory. Then extract the compressed file to update the contents of the retrieved directory
@@ -974,13 +983,27 @@ class vifi():
 						# Change permissions for uncompressed folder (Currently, permissions are changed to 777 to allow writing by docker services into created folders)
 						self.changePermissionsRecursive(os.path.join(comp_path,req).split('.zip')[0])
 		except:
-			result='Error: "unpackCompressedRequests" function has error(s): '
+			result='Error: "unpackCompressedRequests" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
 			else:
 				print(result)
 				traceback.print_exc()
+	
+	def unpackCompressedRequestsLoop(self,conf:dict=None,sets:List[str]=None,flog:TextIOWrapper=None)->None:
+		''' Perform unpackCompressedRequests in a loop until STOP condition of current VIFI instance is True
+		@param conf: VIFI configuration file
+		@type conf: dict
+		@param sets: List of required sets (i.e., (sub)workflow(vifi_server)) to unpack incoming requests. Defaults to all sets if None is specified
+		@type sets: List[str]  
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object) 
+		'''
+		
+		while not self.stop:
+			self.unpackCompressedRequests(conf, sets, flog)
+			time.sleep(conf['domains']['unpack_int'])
 				
 	def reqLog(self,req_log_path:str,req_log:dict,req:str='general_log')-> None:
 		''' Write request logs under specified path.
@@ -1102,7 +1125,7 @@ class vifi():
 			return df
 		
 		except:
-			result='Error: "reqAnalysis" function has error(s): '
+			result='Error: "reqAnalysis" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -1149,7 +1172,7 @@ class vifi():
 				return None
 		
 		except:
-			result='Error: "reqDirAnalysis" function has error(s): '
+			result='Error: "reqDirAnalysis" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -1175,7 +1198,7 @@ class vifi():
 				return True
 		
 		return False
-		
+			
 	def vifiRun(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)->None:
 		''' VIFI request analysis and processing procedure for list of sets (i.e., (sub)workflows). The default 
 		processing behavior of 'vifiRun' is to keep incoming requests at specific locations, then run them as \
@@ -1204,52 +1227,52 @@ class vifi():
 			if not sets:
 				sets=conf['domains']['sets']
 			# Traverse through required sets
-			for set in sets:	
+			for dset in sets:	
 			# Check if required set_i exists
-				if set in conf['domains']['sets']:
+				if dset in conf['domains']['sets']:
 					### INITIALIZE USER PARAMETERS (APPLICABLE FOR ANY USER) ###
 					conf_file_name=conf['user_conf']['conf_file_name']
 		
 					### INITIALIZE REQUIRED PATH VARIABLES FOR SPECIFIED SET ###
-					script_path_in=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
+					script_path_in=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
 										conf['domains']['script_path_in']['name'])
-					script_path_out=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
+					script_path_out=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
 										conf['domains']['script_path_out']['name'])
-					script_path_failed=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
+					script_path_failed=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
 										conf['domains']['script_path_failed']['name'])
-					log_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],\
+					log_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
 										conf['domains']['log_path']['name'])
-					req_res_path_per_request=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][set]['name'],conf['domains']['req_res_path_per_request']['name'])
-					data_dir=conf['domains']['sets'][set]['data_dir']
+					req_res_path_per_request=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],conf['domains']['req_res_path_per_request']['name'])
+					data_dir=conf['domains']['sets'][dset]['data_dir']
 					
 					### LOGGING PARAMETERS ###
 					flog_path=os.path.join(log_path,"out.log")
 					flog = open(flog_path, 'a')
-					flog.write("Scheduled by VIFI Orchestrator for set_i "+set+" at "+str(time.time())+"\n")
+					flog.write("Scheduled by VIFI Orchestrator for set_i "+dset+" at "+str(time.time())+"\n")
 							
 					### IF DOCKER IS USED FOR THIS SET, THEN INITIALIZE DEFAULT DOCKER PARAMETERS ###
 					### SOME DOCKER PARAMETERS CAN BE OVERRIDEN BY END USER IF ALLOWED ###
-					if 'docker' in conf['domains']['sets'][set] and conf['domains']['sets'][set]['docker']:
-						docker_img_set=conf['domains']['sets'][set]['docker']['docker_img']	# Set of allowed docker images
-						docker_rep=conf['domains']['sets'][set]['docker']['docker_rep']	# Maximum number of tasks that can be run by any user for this specific set_i
-						ser_check_thr=conf['domains']['sets'][set]['docker']['ttl'] # Default ttl for each (Docker) service
+					if 'docker' in conf['domains']['sets'][dset] and conf['domains']['sets'][dset]['docker']:
+						docker_img_set=conf['domains']['sets'][dset]['docker']['docker_img']	# Set of allowed docker images
+						docker_rep=conf['domains']['sets'][dset]['docker']['docker_rep']	# Maximum number of tasks that can be run by any user for this specific set_i
+						ser_check_thr=conf['domains']['sets'][dset]['docker']['ttl'] # Default ttl for each (Docker) service
 						client=docker.from_env()
 					else:
-						print('Error: No containerization technique and/or stand alone service is specified to run (sub)workflow '+set)
+						print('Error: No containerization technique and/or stand alone service is specified to run (sub)workflow '+dset)
 						return
 					
 					### IF NIFI IS ENABLED FOR THIS SET, THEN INITIALIZE NIFI HOST AND REGISTRY IF EXISTS ###
-					if conf['domains']['sets'][set]['nifi']['transfer']:
-						nipyapi.config.nifi_config.host = conf['domains']['sets'][set]['nifi']['host']
-						if conf['domains']['sets'][set]['nifi']['registry']:
-							nipyapi.config.registry_config.host = conf['domains']['sets'][set]['nifi']['registry']
+					if conf['domains']['sets'][dset]['nifi']['transfer']:
+						nipyapi.config.nifi_config.host = conf['domains']['sets'][dset]['nifi']['host']
+						if conf['domains']['sets'][dset]['nifi']['registry']:
+							nipyapi.config.registry_config.host = conf['domains']['sets'][dset]['nifi']['registry']
 					
 					# Acquire all requests under current set_i if none provided
 					if not request_in:
 						request_in=os.listdir(script_path_in)
 						
 					### USE PROVIDED SET FUNCTION IF EXISTS ###
-					set_fun=conf['domains']['sets'][set]['set_function']
+					set_fun=conf['domains']['sets'][dset]['set_function']
 					if set_fun:
 						#TODO: Currently, only default set_i behavior is used
 						pass
@@ -1301,9 +1324,9 @@ class vifi():
 										break
 									
 									# Check that user required images are allowed by VIFI Node
-									docker_img=self.checkServiceImage(conf['domains']['sets'][set]['docker']['docker_img'],conf_in['services'][ser]['image'])
+									docker_img=self.checkServiceImage(conf['domains']['sets'][dset]['docker']['docker_img'],conf_in['services'][ser]['image'])
 									if not docker_img:
-										flog.write('Error: Wrong container images specified by end-user. Please, select one from '+str(conf['domains']['sets'][set]['docker']['docker_img'])+" for request "+request+" at "+str(time.time())+"\n")
+										flog.write('Error: Wrong container images specified by end-user. Please, select one from '+str(conf['domains']['sets'][dset]['docker']['docker_img'])+" for request "+request+" at "+str(time.time())+"\n")
 										#TODO: move to failed
 										break
 									
@@ -1319,7 +1342,7 @@ class vifi():
 										#TODO: if this situation continues, then move to failed
 										continue
 									
-									# Check all preceding services are complete, or the preceding service(s) reached the required status, before running the current service
+									# Check all preceding services are complete, or the preceding service(vifi_server) reached the required status, before running the current service
 									if not self.checkSerDep(client=client, ser_name=service_name, user_conf=conf_in):
 										flog.write("Error: Some or all preceding services are missed for "+request+" at "+str(time.time())+"\n")
 										#TODO: if this situation continues, then move to failed
@@ -1383,7 +1406,7 @@ class vifi():
 										
 										# Delete service, if required, to release resource
 										try:
-											self.delService(client, service_name, str(conf['domains']['sets'][set]['terminate']))
+											self.delService(client, service_name, str(conf['domains']['sets'][dset]['terminate']))
 										except:
 											flog.write("Error: failed to delete service "+service_name+" at "+repr(time.time())+"\n")
 											continue
@@ -1397,14 +1420,14 @@ class vifi():
 										if conf_in['services'][ser]['nifi']['transfer']:
 											if self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
 															data_path=os.path.join(script_processed,req_res_path_per_request), \
-															pg_name=set, \
+															pg_name=dset, \
 															tr_res_temp_name='tr_res_temp'):
 												# NIFI transfer succeeded 
 												flog.write("Intermediate results transfer by NIFI succeeded at "+repr(time.time())+"\n")
 											else:
 												# NIFI transfer failed
 												flog.write("Intermediate results transfer by NIFI failed at "+repr(time.time())+"\n")
-												# TODO: should the user request be terminated? or just continue with future service(s) 
+												# TODO: should the user request be terminated? or just continue with future service(vifi_server) 
 									
 									else:
 										# Service failed
@@ -1445,7 +1468,7 @@ class vifi():
 									if conf_in['fin_dest']['nifi']['transfer']:
 										if self.nifiTransfer(user_nifi_conf=conf_in['fin_dest']['nifi']['transfer'], \
 															data_path=os.path.join(script_finished,req_res_path_per_request), \
-															pg_name=set, \
+															pg_name=dset, \
 															tr_res_temp_name='tr_res_temp'):
 											# Wait for the transfer to be done
 											flog.write("Final results transfer by NIFI succeeded at "+repr(time.time())+"\n")
@@ -1464,9 +1487,9 @@ class vifi():
 							self.req_list.clear()
 								
 				else:
-					print('Error: Specified set_i '+set+' does not exist')
+					print('Error: Specified set_i '+dset+' does not exist')
 		except:
-			result='Error: "vifiRun" function has error(s): '
+			result='Error: "vifiRun" function has error(vifi_server): '
 			if flog:
 				flog.write(result)
 				traceback.print_exc(file=flog)
@@ -1476,16 +1499,56 @@ class vifi():
 		finally:
 			if flog:
 				flog.close()
+	
+	def vifiRunLoop(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)-> None:
+		''' Performs vifiRun function in a loop until the instance STOP condition is True
+		@param sets: List of sets (i.e., (sub)workflows) to run (i.e., receive and process requests)
+		@type sets: List[str]
+		@param request_in: List of users' requests within specified @sets to be processed (i.e., path to request folder)
+		@type request_in: List[str] 
+		@param conf: VIFI Node configuration
+		@type conf_in: dict
+		'''
+		
+		while not self.stop:
+			self.vifiRun(sets, request_in, conf)
+			time.sleep(conf['domains']['proc_int'])
 			
 		
 	if __name__ == '__main__':
-		import time
+		
 		from .vifi import vifi
 		
-		set_i='JPL_cordex'
-		s=vifi('vifi_config.yaml')
-		while(True):
-			s.unpackCompressedRequests(sets=[set_i])
-			s.vifiRun(sets=[set_i])
-			time.sleep(1)
+		# Parse input arguments
+		parser = argparse.ArgumentParser()
+		parser.add_argument('--sets', nargs='*', help='List of sets to be processed', default=None)	# List of sets to be processed
+		parser.add_argument('--vifi_conf',help='VIFI configuration file for current instance of VIFI server', default='vifi_config.yaml')	# List of sets to be processed
+		arguments = parser.parse_args()
 		
+		# Create a VIFI server instance (Created by BaseManager to be shared between processes)
+		BaseManager.register('vifi',vifi)
+		m=BaseManager()
+		m.start()
+		s=m.vifi(arguments.vifi_conf)
+		
+		# Create list of processes to run different VIFI functionalities
+		p=[]
+		p.append(Process(target=s.unpackCompressedRequestsLoop,kwargs={'sets':arguments.sets}))
+		p.append(Process(target=s.vifiRunLoop,kwargs={'sets':arguments.sets}))
+		
+		# Run the created VIFI processes
+		for i in p:
+			i.start()
+
+		# Keep running VIFI server till receiving a STOP request 
+		while True:
+			lines=select.select([sys.stdin], [], [], 1)[0]
+			if 'stop' in [x.readline().strip().lower() for x in lines]:
+				p1=Process(target=s.end)
+				p1.start()
+				p1.join()
+				break
+		for i in p:
+			i.join()
+		p.clear()
+				

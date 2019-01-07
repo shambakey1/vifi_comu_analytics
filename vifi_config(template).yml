@@ -36,7 +36,8 @@ compressed:
   
 ######## GENERAL PARAMETERS (PATH PARAMETERS FOR INPUT SCRIPTS, OUTPUT DIRECTORIES FOR EACH DOMAIN) #################
 domains: 
- proc_int: 1  # Time interval in seconds between each processing cycle of input requests 
+ proc_int: 1  # Time interval in seconds between each processing cycle of input requests
+ unpack_int: 1   # Time interval in seconds between each unpacking cycle of input requests
  root_script_path: # Root directory that contains separate directory for each domains
    name: /home/ubuntu/requests
    mode: 0o777
