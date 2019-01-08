@@ -5,12 +5,11 @@ Created on Mar 29, 2018
 @contact: shambakey1@gmail.com
 '''
 
-import yaml, time, os, sys, shutil, json, uuid, requests, docker, traceback, copy, select
+import yaml, time, os, sys, shutil, json, uuid, requests, traceback, select, multiprocessing
 import nipyapi
 from nipyapi import canvas, templates
 from nipyapi.nifi.apis.remote_process_groups_api import RemoteProcessGroupsApi	
 from nipyapi.nifi.apis.connections_api import ConnectionsApi
-#from nipyapi.nifi.apis.process_groups_api import ProcessGroupsApi
 import pandas as pd
 import docker.models
 from typing import List
@@ -1517,7 +1516,11 @@ class vifi():
 		
 	if __name__ == '__main__':
 		
-		import vifi
+		import vifi, logging
+		
+		logger = multiprocessing.log_to_stderr()
+		logger.setLevel(logging.INFO)
+		logger.warning('doomed')
 		
 		# Parse input arguments
 		parser = argparse.ArgumentParser()
