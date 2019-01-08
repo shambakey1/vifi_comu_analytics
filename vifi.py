@@ -1517,6 +1517,8 @@ class vifi():
 		
 	if __name__ == '__main__':
 		
+		import vifi
+		
 		# Parse input arguments
 		parser = argparse.ArgumentParser()
 		parser.add_argument('--sets', nargs='*', help='List of sets to be processed', default=None)	# List of sets to be processed
