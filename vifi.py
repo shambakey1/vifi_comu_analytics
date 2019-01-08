@@ -999,10 +999,28 @@ class vifi():
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object) 
 		'''
+		try:
+			
+			# Either load input VIFI configuration file, or load internal VIFI configuration file
+			if not conf:
+				if not self.vifi_conf:
+					print('Error: No VIFI configuration exist')
+					sys.exit()
+				else:
+					conf=self.vifi_conf
+						
+			while not self.stop:
+				self.unpackCompressedRequests(conf, sets, flog)
+				time.sleep(conf['domains']['unpack_int'])
 		
-		while not self.stop:
-			self.unpackCompressedRequests(conf, sets, flog)
-			time.sleep(conf['domains']['unpack_int'])
+		except:
+			result='Error: "unpackCompressedRequestsLoop" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
 				
 	def reqLog(self,req_log_path:str,req_log:dict,req:str='general_log')-> None:
 		''' Write request logs under specified path.
@@ -1499,7 +1517,7 @@ class vifi():
 			if flog:
 				flog.close()
 	
-	def vifiRunLoop(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)-> None:
+	def vifiRunLoop(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None,flog:TextIOWrapper=None)-> None:
 		''' Performs vifiRun function in a loop until the instance STOP condition is True
 		@param sets: List of sets (i.e., (sub)workflows) to run (i.e., receive and process requests)
 		@type sets: List[str]
@@ -1507,17 +1525,39 @@ class vifi():
 		@type request_in: List[str] 
 		@param conf: VIFI Node configuration
 		@type conf_in: dict
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object)
 		'''
 		
-		while not self.stop:
-			self.vifiRun(sets, request_in, conf)
-			time.sleep(conf['domains']['proc_int'])
+		try:
+			# Make sure that VIFI server configuration exist 
+			if not conf:
+				if self.vifi_conf:
+					conf=self.vifi_conf
+				else:
+					print('Error: No VIFI server configuration exists')
+					sys.exit()
+					
+			while not self.stop:
+				self.vifiRun(sets, request_in, conf)
+				time.sleep(conf['domains']['proc_int'])
+		except:
+			result='Error: "vifiRunLoop" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
+		finally:
+			if flog:
+				flog.close()
 			
 		
 	if __name__ == '__main__':
 		
 		import logging
-		from . import vifi
+		from vifi_comu_analytics import vifi
 		
 		logger = multiprocessing.log_to_stderr()
 		logger.setLevel(logging.INFO)
