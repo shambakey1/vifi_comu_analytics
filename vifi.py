@@ -1557,7 +1557,7 @@ class vifi():
 	if __name__ == '__main__':
 		
 		import logging
-		from vifi_comu_analytics import vifi
+		from vifi import vifi
 		
 		logger = multiprocessing.log_to_stderr()
 		logger.setLevel(logging.INFO)
