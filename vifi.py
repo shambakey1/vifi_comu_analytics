@@ -660,12 +660,13 @@ class vifi():
 		'''
 		
 		try:
-			if ser in [x.name for x in client.services.list()]:
-				return None
-			elif iter_no>1:	# In case of iterative service
-				return self.getSerName(ser, flog)
-			else:
-				return ser
+			for x in client.services.list():
+				if ser in x.name:
+					return None
+				elif iter_no>1:	# In case of iterative service
+					return self.getSerName(ser, flog)
+				else:
+					return ser
 		except:
 			result='Error: "checkSerName" function has error(vifi_server): '
 			if flog:
