@@ -781,9 +781,8 @@ class vifi():
 			
 			# Update the reference to the modified remote process group
 			req_remote_port=None
-			while user_nifi_conf['target_remote_input_port'] not in [k.name for k in canvas.get_remote_process_group(tr_res_remote.id).component.contents.input_ports]:
-				pass
-			tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
+			while user_nifi_conf['target_remote_input_port'] not in [k.name for k in tr_res_remote.component.contents.input_ports]:
+				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
 			# Create an instance of the ConnectionsApi
 			conn_api=ConnectionsApi()
@@ -815,9 +814,9 @@ class vifi():
 			canvas.update_processor(tr_res_get_results, tr_res_get_results.component.config)
 			
 			# Update the reference to the 'get results' processor
-			while canvas.get_processor(tr_res_get_results.component.name).revision.version==tr_res_get_results.revision.version:
+			while canvas.get_processor(tr_res_get_results.id,'id').revision.version==tr_res_get_results.revision.version:
 				pass
-			tr_res_get_results=canvas.get_processor(tr_res_get_results.component.name)
+			tr_res_get_results=canvas.get_processor(tr_res_get_results.id,'id')
 			
 			# Start the 'get results' processor to start transferring results file
 			canvas.schedule_processor(tr_res_get_results, True)
@@ -827,16 +826,10 @@ class vifi():
 			# Enable transmission of the remote process group to finish transfer of the results file
 			tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'TRANSMITTING','disconnectedNodeAcknowledged':True}
 			rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
-			#while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
 			while tr_res_remote.status.transmission_status!='Transmitting':
 				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
 			# Check that the results file has been transmitted
-			'''
-			tr_res_conn=conn_api.get_connection(tr_res_conn.id)
-			while tr_res_conn.status.aggregate_snapshot.queued_count!='0' and tr_res_conn.status.aggregate_snapshot.output=='0 (0 bytes)':
-				tr_res_conn=conn_api.get_connection(tr_res_conn.id)
-			'''
 			while tr_res_remote.status.aggregate_snapshot.flow_files_sent==0:
 				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
@@ -845,7 +838,6 @@ class vifi():
 			# Disable transmission of the remote process group and update reference to the remote process group
 			tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'STOPPED','disconnectedNodeAcknowledged':True}
 			rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
-			#while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
 			while tr_res_remote.status.transmission_status!='NotTransmitting':
 				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
