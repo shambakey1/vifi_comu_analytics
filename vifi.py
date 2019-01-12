@@ -343,7 +343,7 @@ class vifi():
 				print(result)
 				traceback.print_exc()	
 			
-	def checkServiceComplete(self,client:docker.client.DockerClient,service_name:str,task_num_in:int,ttl:int=300,\
+	def checkServiceComplete(self,client:docker.client.DockerClient,service_name:str,task_num_in:int,ttl:int=3600,\
 							flog:TextIOWrapper=None)->bool:
 		''' Check if specified Docker service has finished currently or within specified time threshold
 		@param client: Client connection to Docker Engine
@@ -456,7 +456,7 @@ class vifi():
 		'''
 		
 		try:
-			def_ttl=300	# Default ttl
+			def_ttl=3600	# Default ttl
 			if str(ser_check_thr).lower()=='any':
 				if user_thr:
 					return user_thr
@@ -780,7 +780,8 @@ class vifi():
 			rpg_api.update_remote_process_group(tr_res_remote.id, tr_res_remote)
 			
 			# Update the reference to the modified remote process group
-			while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
+			req_remote_port=None
+			while user_nifi_conf['target_remote_input_port'] not in [k.name for k in canvas.get_remote_process_group(tr_res_remote.id).component.contents.input_ports]:
 				pass
 			tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
@@ -806,6 +807,7 @@ class vifi():
 			tr_res_conn=conn_api.get_connection(tr_res_conn.id)
 			
 			# Modify the 'get results' processor to indicate the path and the name of the compressed results file
+			tr_res_get_results=canvas.get_processor(tr_res_get_results.id,'id')
 			tr_res_get_results.component.config.properties['Input Directory']=data_path
 			tr_res_get_results.component.config.properties['File Filter']=user_nifi_conf['archname']+'.zip'
 			
@@ -825,24 +827,27 @@ class vifi():
 			# Enable transmission of the remote process group to finish transfer of the results file
 			tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'TRANSMITTING','disconnectedNodeAcknowledged':True}
 			rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
-			while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
-				pass
-			tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
-			
+			#while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
+			while tr_res_remote.status.transmission_status!='Transmitting':
+				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
 			# Check that the results file has been transmitted
+			'''
 			tr_res_conn=conn_api.get_connection(tr_res_conn.id)
 			while tr_res_conn.status.aggregate_snapshot.queued_count!='0' and tr_res_conn.status.aggregate_snapshot.output=='0 (0 bytes)':
-				pass
+				tr_res_conn=conn_api.get_connection(tr_res_conn.id)
+			'''
+			while tr_res_remote.status.aggregate_snapshot.flow_files_sent==0:
+				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
 			### TIME TO REMOVE THE DEPLOYED TRANSFER REUSULTS TEMPLATE ###
 			
 			# Disable transmission of the remote process group and update reference to the remote process group
 			tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'STOPPED','disconnectedNodeAcknowledged':True}
 			rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
-			while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
-				pass
-			tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
+			#while canvas.get_remote_process_group(tr_res_remote.id).revision.version==tr_res_remote.revision.version:
+			while tr_res_remote.status.transmission_status!='NotTransmitting':
+				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
 			# Stop the 'get results' processor and update the reference to the 'get results' processor
 			canvas.schedule_processor(tr_res_get_results, False)
