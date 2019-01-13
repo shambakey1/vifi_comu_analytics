@@ -660,13 +660,16 @@ class vifi():
 		'''
 		
 		try:
+			# Check if service name already exists
 			for x in client.services.list():
 				if ser in x.name:
 					return None
-				elif iter_no>1:	# In case of iterative service
-					return self.getSerName(ser, flog)
-				else:
-					return ser
+			
+			# Return required service name
+			if iter_no>1:	# In case of iterative service
+				return self.getSerName(ser, flog)
+			else:
+				return ser
 		except:
 			result='Error: "checkSerName" function has error(vifi_server): '
 			if flog:
