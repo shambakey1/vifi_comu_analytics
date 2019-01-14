@@ -786,7 +786,7 @@ class vifi():
 			# Update the reference to the modified remote process group
 			req_remote_port=None
 			while tr_res_remote.status.target_uri!=user_nifi_conf['target_uri'] or \
-			tr_res_remote.status.aggregate_snapshot.target_uri!=user_nifi_conf['target_uri'] or \
+			#tr_res_remote.status.aggregate_snapshot.target_uri!=user_nifi_conf['target_uri'] or \
 			user_nifi_conf['target_remote_input_port'] not in [k.name for k in tr_res_remote.component.contents.input_ports]:
 				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
@@ -810,9 +810,9 @@ class vifi():
 			
 			# Update the reference to the connection to the remote process group
 			while tr_res_conn.status.destination_name!=req_remote_port.name or \
-			tr_res_conn.status.destination_id!=req_remote_port.id or \
-			tr_res_conn.status.aggregate_snapshot.destination_name!=req_remote_port.name or \
-			tr_res_conn.status.aggregate_snapshot.destination_id!=req_remote_port.id:
+			tr_res_conn.status.destination_id!=req_remote_port.id:
+			#tr_res_conn.status.aggregate_snapshot.destination_name!=req_remote_port.name or \
+			#tr_res_conn.status.aggregate_snapshot.destination_id!=req_remote_port.id:
 				tr_res_conn=conn_api.get_connection(tr_res_conn.id)
 			
 			# Modify the 'get results' processor to indicate the path and the name of the compressed results file
