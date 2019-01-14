@@ -798,6 +798,7 @@ class vifi():
 					break
 			
 			# Modify the connection to the remote process group to reflect the correct input port
+			tr_res_conn=conn_api.get_connection(tr_res_conn.id)
 			tr_res_conn.destination_id=req_remote_port.id
 			tr_res_conn.component.destination.id=req_remote_port.id
 			
