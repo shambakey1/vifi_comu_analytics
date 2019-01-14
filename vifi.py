@@ -795,10 +795,11 @@ class vifi():
 			conn_api=ConnectionsApi()
 			
 			# Retrieve information about the required input port of the remote process group. This step should be done after updating the target_uri(vifi_server) of the remote process group
-			for k in tr_res_remote.component.contents.input_ports:
-				if k.name==user_nifi_conf['target_remote_input_port']:
-					req_remote_port=k
-					break
+			while not req_remote_port:
+				for k in tr_res_remote.component.contents.input_ports:
+					if k.name==user_nifi_conf['target_remote_input_port']:
+						req_remote_port=k
+						break
 			
 			# Modify the connection to the remote process group to reflect the correct input port
 			#tr_res_conn=conn_api.get_connection(tr_res_conn.id)
