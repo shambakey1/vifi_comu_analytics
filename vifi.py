@@ -785,10 +785,9 @@ class vifi():
 			
 			# Update the reference to the modified remote process group
 			req_remote_port=None
-			while tr_res_remote.status.target_uri!=user_nifi_conf['target_uri'] and \
-			tr_res_remote.status.aggregate_snapshot.target_uri!=user_nifi_conf['target_uri']:
-				while user_nifi_conf['target_remote_input_port'] not in [k.name for k in tr_res_remote.component.contents.input_ports]:
-					pass
+			while tr_res_remote.status.target_uri!=user_nifi_conf['target_uri'] or \
+			tr_res_remote.status.aggregate_snapshot.target_uri!=user_nifi_conf['target_uri'] or \
+			user_nifi_conf['target_remote_input_port'] not in [k.name for k in tr_res_remote.component.contents.input_ports]:
 				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
 			# Create an instance of the ConnectionsApi
@@ -810,9 +809,9 @@ class vifi():
 			conn_api.update_connection(tr_res_conn.id, tr_res_conn)
 			
 			# Update the reference to the connection to the remote process group
-			while tr_res_conn.status.destination_name!=req_remote_port.name and \
-			tr_res_conn.status.destination_id!=req_remote_port.id and \
-			tr_res_conn.status.aggregate_snapshot.destination_name!=req_remote_port.name and \
+			while tr_res_conn.status.destination_name!=req_remote_port.name or \
+			tr_res_conn.status.destination_id!=req_remote_port.id or \
+			tr_res_conn.status.aggregate_snapshot.destination_name!=req_remote_port.name or \
 			tr_res_conn.status.aggregate_snapshot.destination_id!=req_remote_port.id:
 				tr_res_conn=conn_api.get_connection(tr_res_conn.id)
 			
@@ -825,13 +824,14 @@ class vifi():
 			canvas.update_processor(tr_res_get_results, tr_res_get_results.component.config)
 			
 			# Update the reference to the 'get results' processor
-			while tr_res_get_results.component.config.properties['Input Directory']!=data_path and \
+			while tr_res_get_results.component.config.properties['Input Directory']!=data_path or \
 			tr_res_get_results.component.config.properties['File Filter']!=user_nifi_conf['archname']+'.zip':
 				tr_res_get_results=canvas.get_processor(tr_res_get_results.id,'id')
 						
 			# Start the 'get results' processor to start transferring results file
 			canvas.schedule_processor(tr_res_get_results, True)
 			while canvas.get_processor(tr_res_get_results.component.name).revision.version==tr_res_get_results.revision.version:
+				# TODO: I think there should be a more restrict condition than checking version to ensure the processor has run 
 				pass
 			
 			# Enable transmission of the remote process group to finish transfer of the results file
