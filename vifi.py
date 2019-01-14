@@ -786,8 +786,9 @@ class vifi():
 			# Update the reference to the modified remote process group
 			req_remote_port=None
 			while tr_res_remote.status.target_uri!=user_nifi_conf['target_uri'] and \
-			tr_res_remote.status.aggregate_snapshot.target_uri!=user_nifi_conf['target_uri'] and \
-			user_nifi_conf['target_remote_input_port'] not in [k.name for k in tr_res_remote.component.contents.input_ports]:
+			tr_res_remote.status.aggregate_snapshot.target_uri!=user_nifi_conf['target_uri']:
+				while user_nifi_conf['target_remote_input_port'] not in [k.name for k in tr_res_remote.component.contents.input_ports]:
+					pass
 				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)
 			
 			# Create an instance of the ConnectionsApi
