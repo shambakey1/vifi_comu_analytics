@@ -1433,6 +1433,7 @@ class vifi():
 										
 										# Delete service, if required, to release resource
 										try:
+											# TODO: Deleted or finished services should be recorded (either in a local list/dict, or in the user configuration file). Thus, it will be known which services, or service iterations, have finished  
 											self.delService(client, service_name, str(conf['domains']['sets'][dset]['terminate']))
 										except:
 											flog.write("Error: failed to delete service "+service_name+" at "+repr(time.time())+"\n")
@@ -1570,8 +1571,9 @@ class vifi():
 		from vifi import vifi
 		
 		logger = multiprocessing.log_to_stderr()
-		logger.setLevel(logging.INFO)
-		logger.warning('doomed')
+		#logger.setLevel(logging.INFO)
+		#logger.warning('doomed')
+		logger.setLevel()
 		
 		# Parse input arguments
 		parser = argparse.ArgumentParser()
