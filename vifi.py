@@ -1573,7 +1573,7 @@ class vifi():
 		logger = multiprocessing.log_to_stderr()
 		#logger.setLevel(logging.INFO)
 		#logger.warning('doomed')
-		logger.setLevel()
+		logger.setLevel(logging.NOTSET)
 		
 		# Parse input arguments
 		parser = argparse.ArgumentParser()
