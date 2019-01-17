@@ -834,6 +834,9 @@ class vifi():
 				pass
 			
 			# Enable transmission of the remote process group to finish transfer of the results file
+			while tr_res_remote.status.target_uri!=user_nifi_conf['target_uri'] or \
+			user_nifi_conf['target_remote_input_port'] not in [k.name for k in tr_res_remote.component.contents.input_ports]:
+				tr_res_remote=canvas.get_remote_process_group(tr_res_remote.id)	# This step is to ensure the remote port still exists because the remote site may experience some problems
 			tr_res_remote_stat={'revision':tr_res_remote.revision,'state':'TRANSMITTING','disconnectedNodeAcknowledged':True}
 			rpg_api.update_remote_process_group_run_status(tr_res_remote.id,tr_res_remote_stat)
 			while tr_res_remote.status.transmission_status!='Transmitting':
