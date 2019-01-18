@@ -59,7 +59,7 @@ class vifi():
 		
 		self.stop=True
 	
-	def dump_conf(self,conf:dict=None,outfile:str,flog:TextIOWrapper=None)-> None:
+	def dump_conf(self,conf:dict,outfile:str,flog:TextIOWrapper=None)-> None:
 		''' Dumps configuration dictionary into the required YAML file
 		@param conf: Configuration dictionary to be dumped
 		@type conf: dict 
@@ -69,8 +69,23 @@ class vifi():
 		@type flog: TextIOWrapper (file object) 
 		'''
 		
-		with open(outfile,'w') as f:
-			yaml.dump(conf,f,default_flow_style=False)
+		try:
+			if not conf:
+				print('Error: No configuration is specified to dump')
+			elif not outfile:
+				print('Error: No file specified to dump the configuration')
+			else:
+				with open(outfile,'w') as f:
+					yaml.dump(conf,f,default_flow_style=False)
+					
+		except:
+			result='Error: "dump_conf" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
 		
 	def load_conf(self,infile:str,flog:TextIOWrapper=None)->dict:
 		''' Loads user configuration file. "infile" is in JSON format
