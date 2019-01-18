@@ -19,7 +19,8 @@ fin_dest: # Final destination to transfer final results
 services:                    # Group of required services for current request. Thus, a single request (to a specified (sub)workflow) consists of zero or more services. The services can be dependent or independent 
  ocw_cordex_stg1:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
-   max_rep: 1               # Maximum iteration numbers. Default is 1 to run the service only once
+   max_rep: 1               # Maximum iteration numbers. Default is 1 to run the service only once. .inf (yes, with dot at the beginning as this is the YAML way to represenet infinity) if other criteria will be used to determine number of iterations 
+   cur_iter: 0              # Current iteration number of current service. If equal to @max_rep, then the current service has finished all its iterations 
   dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
    files:                    # Lisf of files/directories that should exist for current service to run including the @script. 'f' stands for 'file', while 'd' stands for 'directory'. All files/directories are relative to user request location
     cordex1.py: f
@@ -65,7 +66,8 @@ services:                    # Group of required services for current request. T
  
  ocw_cordex_stg2:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
-   max_rep: 1               # Maximum iteration numbers. Default is 1 to run the service only once
+   max_rep: 1               # Maximum iteration numbers. Default is 1 to run the service only once. .inf (yes, with dot at the beginning as this is the YAML way to represenet infinity) if other criteria will be used to determine number of iterations
+   cur_iter: 0              # Current iteration number of current service. If equal to @max_rep, then the current service has finished all its iterations 
   dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
    files:                    # Lisf of files/directories that should exist for current service to run including the @script. 'f' stands for 'file', while 'd' stands for 'directory'. All files/directories are relative to user request location
     cordex2.py: f

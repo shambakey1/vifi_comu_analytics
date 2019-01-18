@@ -58,10 +58,23 @@ class vifi():
 		'''
 		
 		self.stop=True
+	
+	def dump_conf(self,conf:dict=None,outfile:str,flog:TextIOWrapper=None)-> None:
+		''' Dumps configuration dictionary into the required YAML file
+		@param conf: Configuration dictionary to be dumped
+		@type conf: dict 
+		@param outfile: Path and name of the user output YAML configuration file
+		@type outfile: str  
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object) 
+		'''
+		
+		with open(outfile,'w') as f:
+			yaml.dump(conf,f,default_flow_style=False)
 		
 	def load_conf(self,infile:str,flog:TextIOWrapper=None)->dict:
 		''' Loads user configuration file. "infile" is in JSON format
-		@param infile: Path and name of the user input JSON configuration file
+		@param infile: Path and name of the user input YAML configuration file
 		@type infile: str  
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object) 
@@ -555,8 +568,9 @@ class vifi():
 				traceback.print_exc()
 		
 		
-	def checkSerDep(self,client:docker.client.DockerClient,ser_name:str,user_conf:dict,flog:TextIOWrapper=None)->bool:
-		''' Check if all preceding services are satisfied (i.e., completed) before running current service.
+	def checkSerDep_ORG(self,client:docker.client.DockerClient,ser_name:str,user_conf:dict,flog:TextIOWrapper=None)->bool:
+		''' (DEPRECATED) Check if all preceding services are satisfied (i.e., completed) before running current service.
+		@deprecated: Use @checkSerDep function instead
 		@param client: Client connection to Docker
 		@type client: :docker.client.DockerClient 
 		@param ser_name: Service name to check its dependency
@@ -588,6 +602,44 @@ class vifi():
 						return False
 			
 			return True
+		except:
+			result='Error: "checkSerDep" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
+	
+	def checkSerDep(self,servs:dict,ser_name:str,user_conf:dict,flog:TextIOWrapper=None)->bool:
+		''' Check if all preceding services are satisfied (i.e., completed) before running current service.
+		@param servs: Dictionary of services of current request
+		@type servs: dict 
+		@param ser_name: Service name to check its dependency
+		@type ser_name: str  
+		@param user_conf: User configurations
+		@type user_conf: dict  
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object)  
+		@return: True if input service dependencies are satisfied. Otherwise, False
+		@rtype: bool  
+		'''
+		
+		#TODO: Currently, this method returns True if each previous service is completed. In the future, more sophisticated behavior may be needed
+		
+		try:
+			# Get list of preceding services that should complete before current service
+			dep_servs=user_conf['services'][ser_name]['dependencies']['ser']
+			
+			# Check satisfaction of each service if any (i.e., each service should reach the desired state)
+			if dep_servs:
+				for ser in dep_servs:
+					# Check service existence
+					if ser in servs and servs[ser]['cur_iter']<servs[ser]['max_rep']:
+						return False
+					
+			return True
+		
 		except:
 			result='Error: "checkSerDep" function has error(vifi_server): '
 			if flog:
@@ -1175,6 +1227,7 @@ class vifi():
 		@type req_analysis_f: str
 		@param prom_conf: Prometheues configuration
 		@type prom_conf: dict 
+		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		@return: Analysis results
 		@rtype: pandas.DataFrame  
@@ -1212,22 +1265,72 @@ class vifi():
 				
 			return None
 		
-	def serIterate(self,iter_conf:dict=None,ser_it_no:int=1)-> bool:
+	def serIterate(self,iter_conf:dict=None,ser_it_no:int=1,flog:TextIOWrapper=None)-> bool:
 		''' Determine if it is required to repeat the service again. If no configuration is given, then the service is not repeated any more.
 		NOTE: Current implementation just checks that maximum number of iterations has not been exceeded. Future implementation may encounter other conditions.
 		@param iter_conf: Service configuration for the iterations
 		@type iter_conf: dict
 		@param ser_it_no: Current service iteration number. Incremented each time the service runs
-		@type:  int
+		@type: int
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object)
 		@return: True if service needs to be repeated. Otherwise, False
 		@rtype: bool
 		'''
 		
-		if iter_conf:
-			if ser_it_no<iter_conf['max_rep']:
-				return True
+		try:
+			if iter_conf:
+				if ser_it_no<iter_conf['max_rep']:
+					return True
+			
+			return False
 		
-		return False
+		except:
+			result='Error: "serIterate" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
+				
+			return None
+	
+	
+	def getReqLastState(self,conf:dict=None,flog:TextIOWrapper=None)->dict:
+		''' Retreive the last state of user's request. The request state includes:
+		- The name of each service, the maximum iterations of the service, and the current iteration number of the service
+		@param conf: User request configuration file
+		@type conf: dict
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object)
+		@return: The request last state dictionary
+		@rtype: dict  
+		'''
+		
+		try:
+			servs={}	# Initiate an empty dictionary for request's state
+			
+			# Iterate through services in request's configuration. Record only the unfinished services
+			for ser in conf['services']:
+				if conf['services'][ser]['iterative']['cur_iter']<conf['services'][ser]['iterative']['max_rep']:
+					servs[ser]={}
+					servs[ser]['max_rep']=conf['services'][ser]['iterative']['max_rep']
+					servs[ser]['cur_iter']=conf['services'][ser]['iterative']['cur_iter']
+			
+			# Return request's state
+			return servs
+		
+		except:
+			result='Error: "getReqLastState" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
+				
+			return None
 			
 	def vifiRun(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)->None:
 		''' VIFI request analysis and processing procedure for list of sets (i.e., (sub)workflows). The default 
@@ -1329,6 +1432,9 @@ class vifi():
 								#TODO: if this situation continues, then move to failed
 								continue
 							
+							# Initiate a dictionary of services for current request. This set can be modified after reading the configuration file of current request (due to checkpointing, which is a future feature, some services may have already been finished)
+							servs=self.getReqLastState(conf=conf_in)
+							
 							# Create a 'results' folder in current request (if not already exists) to keep output files.
 							req_res_path_per_request=conf['domains']['req_res_path_per_request']['name']
 							if not os.path.exists(os.path.join(os.path.join(script_path_in,request),req_res_path_per_request)):
@@ -1337,9 +1443,13 @@ class vifi():
 							
 							# Traverse all services of the current request
 							for ser in conf_in['services']:
-								# Set current service iteration
-								ser_it=0
+								# If current service already finished, then move to the next service
+								if ser not in servs:
+									continue
 								
+								# Set current service iteration
+								ser_it=servs[ser]['cur_iter']
+																
 								# Initialize temporary service status to record status of created service (True if service succeeds)
 								tmp_ser_stat=False
 								
@@ -1373,7 +1483,7 @@ class vifi():
 										continue
 									
 									# Check all preceding services are complete, or the preceding service(vifi_server) reached the required status, before running the current service
-									if not self.checkSerDep(client=client, ser_name=service_name, user_conf=conf_in):
+									if not self.checkSerDep(servs=servs, ser_name=service_name, user_conf=conf_in):
 										flog.write("Error: Some or all preceding services are missed for "+request+" at "+str(time.time())+"\n")
 										#TODO: if this situation continues, then move to failed
 										continue
@@ -1422,9 +1532,6 @@ class vifi():
 										self.req_list[request]['services'][service_name]['end']=ser_end_time
 										flog.write("Finished service "+service_name+" for request "+request+" at "+repr(ser_end_time)+"\n\n")
 										
-										# Update service status and the request status
-										tmp_ser_stat=True
-										
 										# Copy required results, if any, to specified destinations
 										if conf_in['services'][ser]['results']:
 											for f_res in conf_in['services'][ser]['results']:
@@ -1433,6 +1540,12 @@ class vifi():
 													shutil.move(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request,f_res))
 												else:
 													flog.write("Failed to locally copy result "+os.path.join(script_processed,f_res)+" at "+repr(time.time())+"\n")
+										
+										# Update service status, request status, and request configuration file
+										tmp_ser_stat=True
+										servs[ser]['cur_iter']+=1
+										conf_in['services'][ser]['iterative']['cur_iter']+=1
+										self.dump_conf(conf_in, os.path.join(script_path_in,request,conf_file_name), flog)
 										
 										# Delete service, if required, to release resource
 										try:
