@@ -644,7 +644,11 @@ class vifi():
 		
 		try:
 			# Get list of preceding services that should complete before current service
-			dep_servs=user_conf['services'][ser_name]['dependencies']['ser']
+			dep_servs=[]
+			for i in user_conf['services']:	# The loop is needed in case of investigating dependencies for iterative service. In current VIFI implementation, an iterative service is composed of the basic service name, plus a UUID
+				if i in ser_name:
+					dep_servs=user_conf['services'][i]['dependencies']['ser']
+					break
 			
 			# Check satisfaction of each service if any (i.e., each service should reach the desired state)
 			if dep_servs:
