@@ -725,7 +725,7 @@ class vifi():
 				traceback.print_exc()
 				
 	
-	def checkSerName(self,ser:str='',iter_no:int=1,client:docker.client.DockerClient=None,flog:TextIOWrapper=None)->str:
+	def checkSerName(self,ser:str='',iter_no:int=0,client:docker.client.DockerClient=None,flog:TextIOWrapper=None)->str:
 		''' Check if required service name is unique. In case of iterative service, a modified service name is returned.
 		@todo: Currently, if service name is not unique, the new service is revoked. In the future, a new name should be assigned to the service  
 		@param ser: Service name to check its uniqueness
@@ -742,15 +742,14 @@ class vifi():
 		
 		try:
 			# Check if service name already exists
+			ser=self.getSerName(ser, iter_no, flog)
 			for x in client.services.list():
 				if ser in x.name:
 					return None
+				else:
+					return ser
 			
-			# Return required service name
-			if iter_no>1:	# In case of iterative service
-				return self.getSerName(ser, flog)
-			else:
-				return ser
+
 		except:
 			result='Error: "checkSerName" function has error(vifi_server): '
 			if flog:
@@ -760,10 +759,12 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 		
-	def getSerName(self,ser_name:str='',flog:TextIOWrapper=None)->str:
+	def getSerName(self,ser_name:str='',iter_no:int=0,flog:TextIOWrapper=None)->str:
 		''' Generate a unique VIFI request (i.e., service) name all over VIFI system
 		@param ser_name: Original service name. If given, this service name will be modified. Otherwise, a new name will be generated
 		@type ser_name: str  
+		@param iter_no: Current iteration number for iterative services. Defaults to 0
+		@type iter_no: int   
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		@return: Unique service name
@@ -772,7 +773,10 @@ class vifi():
 		
 		#TODO: There can be better ways to generate unique service name
 		try:
-			return ser_name+str(uuid.uuid4())
+			if iter_no:
+				return ser_name+"_"+str(iter_no)
+			else:
+				return ser_name
 		except:
 			result='Error: "getSerName" function has error(vifi_server): '
 			if flog:
@@ -1294,7 +1298,7 @@ class vifi():
 				
 			return None
 		
-	def serIterate(self,iter_conf:dict=None,ser_it_no:int=1,flog:TextIOWrapper=None)-> bool:
+	def serIterate(self,iter_conf:dict=None,ser_it_no:int=0,flog:TextIOWrapper=None)-> bool:
 		''' Determine if it is required to repeat the service again. If no configuration is given, then the service is not repeated any more.
 		NOTE: Current implementation just checks that maximum number of iterations has not been exceeded. Future implementation may encounter other conditions.
 		@param iter_conf: Service configuration for the iterations
@@ -1490,7 +1494,7 @@ class vifi():
 									# Check required service name uniqueness (Just a precaution, as the request name- which should also be the service name- must be unique when the user made the request)
 									service_name=self.checkSerName(ser=ser,iter_no=conf_in['services'][ser]['iterative']['max_rep'],client=client)
 									if not service_name:
-										flog.write("Error: Another service (i.e., request) with the same name, "+request+", exists at "+str(time.time())+"\n")
+										flog.write("Error: Another service with the same name, "+service_name+", exists at "+str(time.time())+"\n")
 										#TODO: move to failed. In the future, another service name should be generated if desired
 										break
 									
