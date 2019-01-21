@@ -5,7 +5,7 @@ Created on Mar 29, 2018
 @contact: shambakey1@gmail.com
 '''
 
-import yaml, time, os, sys, shutil, json, uuid, requests, traceback, select, multiprocessing
+import yaml, time, os, sys, shutil, json, uuid, requests, traceback, select, multiprocessing, getpass, grp
 import nipyapi
 from nipyapi import canvas, templates
 from nipyapi.nifi.apis.remote_process_groups_api import RemoteProcessGroupsApi	
@@ -506,7 +506,7 @@ class vifi():
 			
 	def createUserService(self,client:docker.client.DockerClient,service_name:str,docker_rep:int,script_path_in:str,request:str,container_dir:str,\
 						data_dir:dict,user_data_dir:dict,work_dir:str,script:str,docker_img:str,docker_cmd:str,ttl,
-						user_args:List[str]=[],user_envs:List[str]=None,user_mnts:List[str]=None,flog:TextIOWrapper=None)->docker.models.services.Service:
+						user_args:List[str]=[],user_envs:List[str]=None,user_mnts:List[str]=None,user=None, groups=None,flog:TextIOWrapper=None)->docker.models.services.Service:
 		''' Create request service with required configurations (e.g., required mounts, environment variables, command, 
 		arguments ... etc). Currently, service is created as docker service
 		@param client: Client connection to docker enginer
@@ -541,6 +541,10 @@ class vifi():
 		@type user_envs: List[str]
 		@param user_mnts: User list of required mounts inside created service tasks
 		@type user_mnts: List[str]
+		@param user: The user to run the container
+		@type user: str
+		@param groups: The groups to run the container
+		@type groups: List[str]  
 		@param flog: Log file object to record raised events
 		@type flog: TextIOWrapper (file object)
 		@return: Required service
@@ -568,11 +572,17 @@ class vifi():
 						x=x[1:]
 					x=os.path.join(script_path_in,request,x)
 					mnts.append(x)
+			
+			# Determine the user and group(s) used to run the container services if none is provided
+			if not user:
+				user=getpass.getuser()
+			if not groups:
+				groups=grp.getgrnam(user).gr_name
 				
 			# Now, create the required (docker) service, and return it
 			return client.services.create(name=service_name,mode={'Replicated':{'Replicas':docker_rep}},restart_policy=\
 								{'condition':'on-failure'},mounts=mnts,workdir=work_dir,env=envs,image=docker_img,\
-								command=docker_cmd+' '+script,args=user_args)
+								command=docker_cmd+' '+script,args=user_args, user=user, groups=groups)
 		except:
 			result='Error: "createUserService" function has error(vifi_server): '
 			if flog:
@@ -1408,6 +1418,8 @@ class vifi():
 						docker_img_set=conf['domains']['sets'][dset]['docker']['docker_img']	# Set of allowed docker images
 						docker_rep=conf['domains']['sets'][dset]['docker']['docker_rep']	# Maximum number of tasks that can be run by any user for this specific set_i
 						ser_check_thr=conf['domains']['sets'][dset]['docker']['ttl'] # Default ttl for each (Docker) service
+						docker_user=conf['domains']['sets'][dset]['docker']['user']		# User to run docker container
+						docker_groups=conf['domains']['sets'][dset]['docker']['groups']		# List of groups to run docker container
 						client=docker.from_env()
 					else:
 						print('Error: No containerization technique and/or stand alone service is specified to run (sub)workflow '+dset)
@@ -1531,7 +1543,8 @@ class vifi():
 														container_dir=conf_in['services'][ser]['container_dir'], data_dir=data_dir, \
 														user_data_dir=conf_in['services'][ser]['data'], work_dir=conf_in['services'][ser]['work_dir'], script=conf_in['services'][ser]['script'], \
 														docker_img=docker_img, docker_cmd=conf_in['services'][ser]['cmd_eng'], \
-														user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_ttl):
+														user_args=conf_in['services'][ser]['args'], user_envs=conf_in['services'][ser]['envs'], user_mnts=conf_in['services'][ser]['mnts'],ttl=ser_ttl, \
+														user=docker_user, groups=docker_groups):
 											ser_start_time=time.time()	# Record service creation time
 											self.req_list[request]['services'][service_name]={'tasks':task_no}
 											self.req_list[request]['services'][service_name]['start']=ser_start_time
