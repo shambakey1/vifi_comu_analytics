@@ -575,9 +575,9 @@ class vifi():
 			
 			# Determine the user and group(s) used to run the container services if none is provided
 			if not user:
-				user=os.getuid()
+				user=str(os.getuid())
 			if not groups:
-				groups=[os.getgid()]
+				groups=[str(os.getgid())]
 				
 			# Now, create the required (docker) service, and return it
 			return client.services.create(name=service_name,mode={'Replicated':{'Replicas':docker_rep}},restart_policy=\
