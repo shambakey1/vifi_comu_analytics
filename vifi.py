@@ -5,7 +5,7 @@ Created on Mar 29, 2018
 @contact: shambakey1@gmail.com
 '''
 
-import yaml, time, os, sys, shutil, json, uuid, requests, traceback, select, multiprocessing, getpass, grp
+import yaml, time, os, sys, shutil, json, uuid, requests, traceback, select, multiprocessing
 import nipyapi
 from nipyapi import canvas, templates
 from nipyapi.nifi.apis.remote_process_groups_api import RemoteProcessGroupsApi	
@@ -575,9 +575,9 @@ class vifi():
 			
 			# Determine the user and group(s) used to run the container services if none is provided
 			if not user:
-				user=getpass.getuser()
+				user=os.getuid()
 			if not groups:
-				groups=grp.getgrnam(user).gr_name
+				groups=[os.getgid()]
 				
 			# Now, create the required (docker) service, and return it
 			return client.services.create(name=service_name,mode={'Replicated':{'Replicas':docker_rep}},restart_policy=\
