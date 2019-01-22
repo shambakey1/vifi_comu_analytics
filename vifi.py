@@ -746,9 +746,8 @@ class vifi():
 			for x in client.services.list():
 				if ser in x.name:
 					return None
-				else:
-					return ser
 			
+			return ser
 
 		except:
 			result='Error: "checkSerName" function has error(vifi_server): '
