@@ -54,11 +54,13 @@ services:                    # Group of required services for current request. T
   results:                   # List of result files of the service
   ser_check_thr: 300         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
-    transfer: False
+    transfer: 
+     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
     bucket: uncc-vifi-bucket
     path: jpl_cordex
   nifi:                        # This section for NIFI transfer of specified results
-    transfer: False 
+    transfer: 
+     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one 
     archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
     archtype: 'zip'
     target_uri:  # Target NIFI remote process group to transfer results file
@@ -100,11 +102,13 @@ services:                    # Group of required services for current request. T
   - nam_out
   ser_check_thr: 3600         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
-    transfer: False
+    transfer: 
+     condition: 'last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
     bucket: uncc-vifi-bucket
     path: jpl_cordex
   nifi:                        # This section for NIFI transfer of specified results
-    transfer: False 
+    transfer: 
+     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
     archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
     archtype: 'zip'
     target_uri:  # Target NIFI remote process group to transfer results file

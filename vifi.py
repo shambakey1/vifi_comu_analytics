@@ -810,6 +810,51 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
+	def checkTransfer(self,transfer_conf:dict,servs:dict,ser:str,flog:TextIOWrapper=None)->bool:
+		''' Check if it is required to make a transfer for current service iteration
+		@param transfer_conf: The transfer configuration. It is a common structure between different transfer sections (e.g., s3, nifi)
+		@type transfer_conf: dict
+		@param servs: Dictionary of services with different parameters including current service iteration and maximum repetitions for current service
+		@type servs: dict 
+		@param ser: Current service name
+		@type ser: str  
+		@type flog: TextIOWrapper (file object)
+		@return: True if transfer is required. False otherwise
+		@rtype: bool 
+		'''
+		
+		try:
+			
+			# Determine if it is required to transfer results by NIFI (in current iteration)
+			if transfer_conf['condition'].lower()=='all':	# If True, then transfer any results by NIFI for each iteration
+				return True
+			
+			if transfer_conf['condition'].lower()=='never':	# If True, then never transfer any results by NIFI for any iteration
+				return False
+			
+			if transfer_conf['condition'].lower()=='last_iteration':	# If True, then transfer results only if it is already last iteration for current service
+				if servs[ser]['cur_iter']==servs[ser]['max_rep']-1:
+					return True
+				else:
+					return False
+			
+			if transfer_conf['condition'].lower()=='all_but_last_iteration':	# If True, then transfer results of current service iteration only if it not the last iteration
+				if servs[ser]['cur_iter']<servs[ser]['max_rep']-1:
+					return True
+				else:
+					return False
+		
+		except:
+			
+			result='Error: "checkTransfer" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
+			
+
 	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,pg_name:str,tr_res_temp_name:str='tr_res_temp', \
 					flog:TextIOWrapper=None)->bool:
 		''' Transfer required results as a compressed zip file using NIFI
@@ -830,7 +875,7 @@ class vifi():
 		'''
 		
 		try:
-
+			
 			# Copy the results directory to a user_name directory, under the results directory, if not already exists
 			shutil.copytree(data_path, os.path.join(data_path,user_nifi_conf['archname']))
 			
@@ -1591,12 +1636,12 @@ class vifi():
 											continue
 											
 										# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
-										if conf_in['services'][ser]['s3']['transfer'] and conf_in['services'][ser]['s3']['bucket']:	  # s3_transfer is True and s3_buc has some value
+										if self.checkTransfer(conf_in['services'][ser]['s3']['transfer'],servs,ser,flog) and conf_in['services'][ser]['s3']['bucket']:	# s3_transfer is True and s3_buc has some value
 											self.s3Transfer(conf_in['services'][ser]['s3'], os.path.join(script_processed,req_res_path_per_request))
 											flog.write("Transfered to S3 bucket at "+repr(time.time())+"\n")
 										
 										# If NIFI is enabled, then transfer required results using NIFI 
-										if conf_in['services'][ser]['nifi']['transfer']:
+										if self.checkTransfer(conf_in['services'][ser]['nifi']['transfer'],servs,ser,flog):
 											if self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
 															data_path=os.path.join(script_processed,req_res_path_per_request), \
 															pg_name=dset, \
