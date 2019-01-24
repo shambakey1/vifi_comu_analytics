@@ -811,7 +811,8 @@ class vifi():
 				traceback.print_exc()
 	
 	def checkTransfer(self,transfer_conf:dict,servs:dict,ser:str,flog:TextIOWrapper=None)->bool:
-		''' Check if it is required to make a transfer for current service iteration
+		''' Check if it is required to make a transfer for current service iteration.
+		@attention: Service current iteration should be incremented before comparison to service maximum repetitions. Otherwise, results of this function will be incorrect
 		@param transfer_conf: The transfer configuration. It is a common structure between different transfer sections (e.g., s3, nifi)
 		@type transfer_conf: dict
 		@param servs: Dictionary of services with different parameters including current service iteration and maximum repetitions for current service
@@ -833,13 +834,13 @@ class vifi():
 				return False
 			
 			if transfer_conf['condition'].lower()=='last_iteration':	# If True, then transfer results only if it is already last iteration for current service
-				if servs[ser]['cur_iter']==servs[ser]['max_rep']-1:
+				if servs[ser]['cur_iter']==servs[ser]['max_rep']:
 					return True
 				else:
 					return False
 			
 			if transfer_conf['condition'].lower()=='all_but_last_iteration':	# If True, then transfer results of current service iteration only if it not the last iteration
-				if servs[ser]['cur_iter']<servs[ser]['max_rep']-1:
+				if servs[ser]['cur_iter']<servs[ser]['max_rep']:
 					return True
 				else:
 					return False
@@ -1612,7 +1613,7 @@ class vifi():
 										self.req_list[request]['services'][service_name]['end']=ser_end_time
 										flog.write("Finished service "+service_name+" for request "+request+" at "+repr(ser_end_time)+"\n\n")
 										
-										# Copy required results, if any, to specified destinations
+										# Move required results, if any, to specified destinations
 										if conf_in['services'][ser]['results']:
 											for f_res in conf_in['services'][ser]['results']:
 												# Move required final results (Just in case they are needed in the future)
