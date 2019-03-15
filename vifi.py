@@ -812,7 +812,7 @@ class vifi():
 	
 	def checkTransfer(self,transfer_conf:dict,servs:dict,ser:str,flog:TextIOWrapper=None)->bool:
 		''' Check if it is required to make a transfer for current service iteration.
-		@attention: Service current iteration should be incremented before comparison to service maximum repetitions. Otherwise, results of this function will be incorrect
+		@attention: Current service iteration number is 1-based, meaning that after a service finishes, it should have incremented iteration number by 1. Thus, if the service iteration number, this means the service has accomplished 1 iteration. This information is important for comparsion between current service iteration number and the service maximum repetitions.
 		@param transfer_conf: The transfer configuration. It is a common structure between different transfer sections (e.g., s3, nifi)
 		@type transfer_conf: dict
 		@param servs: Dictionary of services with different parameters including current service iteration and maximum repetitions for current service
@@ -1504,7 +1504,7 @@ class vifi():
 							script_finished=os.path.join(script_path_out,request)
 							script_failed=os.path.join(script_path_failed,request)
 						
-							# Check and load user configuration file if exists in current request and override server settings. Otherwise, move to the next request
+							# Check and load user configuration file if exists in current request. Otherwise, move to the next request
 							if os.path.exists(os.path.join(script_path_in,request,conf_file_name)):
 								conf_in=self.load_conf(os.path.join(script_path_in,request,conf_file_name))
 							else:
@@ -1620,7 +1620,7 @@ class vifi():
 												if os.path.exists(os.path.join(script_processed,f_res)):
 													shutil.move(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request,f_res))
 												else:
-													flog.write("Failed to locally copy result "+os.path.join(script_processed,f_res)+" at "+repr(time.time())+"\n")
+													flog.write("Failed to locally move result "+os.path.join(script_processed,f_res)+" at "+repr(time.time())+"\n")
 										
 										# Update service status, request status, and request configuration file
 										tmp_ser_stat=True
@@ -1709,7 +1709,7 @@ class vifi():
 							self.reqLog(req_log_path=self.vifi_conf['req_log_path'], req_log=self.req_list[request],req=request+'_'+str(time.time()))
 							
 							# Clean the request log to save resource
-							self.req_list.clear()
+							del self.req_list[request]
 								
 				else:
 					print('Error: Specified set_i '+dset+' does not exist')
