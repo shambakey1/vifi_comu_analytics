@@ -10,6 +10,12 @@ fin_dest: # Final destination to transfer final results
   transfer: False
   bucket: uncc-vifi-bucket
   path: jpl_cordex
+ sftp:                        # This section for S3 bucket transfer of specified results
+  transfer: False
+  host: 'vifiuitasks-aws.uncc.edu'
+  port: 22
+  username: 'nifisftp'
+  password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
  nifi:                        # This section for NIFI transfer of specified results
   transfer: False 
   archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
@@ -58,6 +64,13 @@ services:                    # Group of required services for current request. T
      condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
     bucket: uncc-vifi-bucket
     path: jpl_cordex
+  sftp:                        # This section for SFTP Server transfer of specified results
+    transfer: 
+     condition: 'never'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
+    host: 'vifiuitasks-aws.uncc.edu'
+    port: 22
+    username: 'nifisftp'
+    password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
   nifi:                        # This section for NIFI transfer of specified results
     transfer: 
      condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one 
@@ -106,6 +119,13 @@ services:                    # Group of required services for current request. T
      condition: 'last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
     bucket: uncc-vifi-bucket
     path: jpl_cordex
+  sftp:                        # This section for SFTP Server transfer of specified results
+    transfer: 
+     condition: 'last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
+    host: 'vifiuitasks-aws.uncc.edu'
+    port: 22
+    username: 'nifisftp'
+    password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
   nifi:                        # This section for NIFI transfer of specified results
     transfer: 
      condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one

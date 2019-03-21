@@ -5,7 +5,7 @@ Created on Mar 29, 2018
 @contact: shambakey1@gmail.com
 '''
 
-import yaml, time, os, sys, shutil, json, uuid, requests, traceback, select, multiprocessing
+import yaml, time, os, sys, shutil, json, uuid, requests, traceback, select, multiprocessing, paramiko
 import nipyapi
 from nipyapi import canvas, templates
 from nipyapi.nifi.apis.remote_process_groups_api import RemoteProcessGroupsApi	
@@ -758,6 +758,16 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 		
+		
+	def createMetadata(self):
+		''' Create metadata file that gives additional information about sent files between VIFI Nodes.
+		The metadata file can be used in log tracing. The metadata file should be stored by the remote VIFI Node in the log folder of the corresponding request
+		Currently, the created file name should end with ".log.yml" or ".log.yaml"
+		'''
+		
+		# TODO: Implement
+		pass
+		
 	def getSerName(self,ser_name:str='',iter_no:int=0,flog:TextIOWrapper=None)->str:
 		''' Generate a unique VIFI request (i.e., service) name all over VIFI system
 		@param ser_name: Original service name. If given, this service name will be modified. Otherwise, a new name will be generated
@@ -856,8 +866,8 @@ class vifi():
 				traceback.print_exc()
 			
 
-	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,pg_name:str,tr_res_temp_name:str='tr_res_temp', \
-					flog:TextIOWrapper=None)->bool:
+	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,res_id:str='',pg_name:str,tr_res_temp_name:str='tr_res_temp', \
+					flog:TextIOWrapper=None)->str:
 		''' Transfer required results as a compressed zip file using NIFI
 		NOTE: Current implementation just creates the compressed file to be transfered by NIFI. Current implementation 
 		does not transfer the file by itself. The transfer process is done by NIFI workflow design
@@ -865,14 +875,16 @@ class vifi():
 		@type user_nifi_conf: dict  
 		@param data_path: Directory path of file to be transfered
 		@type data_path: str 
+		@param res_id: Results UUID which can be useful for log tracing (e.g., to trace a specific result sent from specific VIFI Node A to specific VIFI Node B)
+		@type res_id: str  
 		@param pg_name: NIFI Processor group name corresponding to required set
 		@type pg_name: str 
 		@param tr_res_temp_name: NIFI Transfer results template name. Defaults to 'tr_res_temp' template
 		@type tr_res_temp_name: str 
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
-		@return: True to indicate success
-		@rtype: bool
+		@return: Name of the (uniquely identified) compressed result file, if successful, without path. Otherwise, and empty string
+		@rtype: str
 		'''
 		
 		try:
@@ -886,6 +898,12 @@ class vifi():
 			# Remove the created user_name directory
 			shutil.rmtree(os.path.join(data_path,user_nifi_conf['archname']), ignore_errors=True)
 			
+			# Identify the compressed results if required
+			res_name=os.path.join(data_path,user_nifi_conf['archname']+'.zip')
+			if res_id:
+				shutil.move(res_name, os.path.join(data_path,user_nifi_conf['archname']+'.'+res_id+'.zip'))
+				res_name=os.path.join(data_path,user_nifi_conf['archname']+'.'+res_id+'.zip')
+						
 			# Retrieve processor group for the specified set
 			set_pg=canvas.get_process_group(pg_name)
 			
@@ -947,14 +965,14 @@ class vifi():
 			# Modify the 'get results' processor to indicate the path and the name of the compressed results file
 			tr_res_get_results=canvas.get_processor(tr_res_get_results.id,'id')
 			tr_res_get_results.component.config.properties['Input Directory']=data_path
-			tr_res_get_results.component.config.properties['File Filter']=user_nifi_conf['archname']+'.zip'
+			tr_res_get_results.component.config.properties['File Filter']=os.path.basename(res_name)
 			
 			# Update the 'get results' processor with the new attributes
 			canvas.update_processor(tr_res_get_results, tr_res_get_results.component.config)
 			
 			# Update the reference to the 'get results' processor
 			while tr_res_get_results.component.config.properties['Input Directory']!=data_path or \
-			tr_res_get_results.component.config.properties['File Filter']!=user_nifi_conf['archname']+'.zip':
+			tr_res_get_results.component.config.properties['File Filter']!=os.path.basename(res_name):
 				tr_res_get_results=canvas.get_processor(tr_res_get_results.id,'id')
 						
 			# Start the 'get results' processor to start transferring results file
@@ -993,8 +1011,8 @@ class vifi():
 			# Delete the remote process group
 			rpg_api.remove_remote_process_group(tr_res_remote.id,version=tr_res_remote.revision.version)
 			
-			# Retun True to indicate transfer success
-			return True
+			# Retun (uniquely identified) compressed result file name, without path, to indicate transfer success
+			return os.path.basename(res_name)
 			
 		except:
 			result='Error: "nifiTransfer" function has error(vifi_server): '
@@ -1035,7 +1053,62 @@ class vifi():
 			else:
 				print(result)
 				traceback.print_exc()
+	
+	def sftpTransfer(self,user_sftp_conf:dict,data_path:str,\
+					dest_path:str,flog:TextIOWrapper=None)->bool:
+		''' Transfer input file to specified SFTP server
+		@param user_sftp_conf: User configurations related to SFTP Server
+		@type user_sftp_conf: dict  
+		@param data_path: Path of files to be transfered
+		@type data_path: str
+		@param dest_path: The destination path on the SFTP Server to store the files. The path DOES NOT include the file names
+		@type dest_path: str 
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object)
+		@return: True if file(s) transferred correctly
+		@rtype: bool    
+		'''			
+		final_res=False
+		
+		try:
+
+			# Extract required SFTP parameters from user configuration file
+			host=user_sftp_conf['host']
+			port=user_sftp_conf['port']
+			username=user_sftp_conf['username']
+			password=user_sftp_conf['password']
+			
+			# needed to add host to trusted hosts file
+			ssh_client = paramiko.SSHClient()
+			ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+			
+			transport = paramiko.Transport((host, port))
+			transport.connect(username=username, password=password)
+			
+			sftp_client = paramiko.SFTPClient.from_transport(transport)
+			res=True	# True if files are sent correctly to the SFTP server. False, otherwise.
+			for path,dir,f_res in os.walk(data_path):
+				for f in f_res:
+					res &= sftp_client.put(os.path.join(path,f), os.path.join(dest_path,f))
+			
+			final_res=res
+			
+			sftp_client.close()
+			transport.close()
+		
+		except:
+			result='Error: "sftpTransfer" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
 				
+		finally:
+			return final_res
+				
+		
 	def changePermissionsRecursive(self,path:str, mode=0o777,flog:TextIOWrapper=None)->None:
 		''' Changes permissions of files and folders recursively under specified path
 		@see https://www.tutorialspoint.com/How-to-change-the-permission-of-a-directory-using-Python
@@ -1067,12 +1140,83 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
-	def unpackCompressedRequests(self,conf:dict=None,sets:List[str]=None,flog:TextIOWrapper=None)->None:
+	def checkCompressed(self,req:str)->bool:
+		''' Check if the input request is a compressed file
+		@param req: Input request to be examined as a compressed file or not
+		@type req: Str
+		@return: True if the input request is a compressed file. Otherwise, returns False
+		@rtype: Bool  
+		'''
+		
+		# Currently, this function checks if the input file has the ".zip" extension
+		if '.zip' in req:
+			return True
+		
+		return False
+	
+	def getReqPartfromReqPath(self,req:str,sep:str='.')->List[str]:
+		''' Return request partitions from request path (i.e., request name, specific ID for this request, request extension)
+		@param req: Request path
+		@type req: Str
+		@param sep: Separator in request name. Default is '.'
+		@type sep: Str
+		@return: List of request partitions (i.e., request name, specific ID for this request, request extension)
+		@rtype: List[str]
+		'''
+		
+		# Current implementation assumes the input request consists of the desired request name + '.' + UUID + '.' + extension
+		return os.path.basename(req).split(sep=sep)
+		
+	def getReqNameFromPath(self,req:str,sep:str='.')->str:
+		''' Returns request name from received compressed file path
+		@param req: Input request path
+		@type req: Str
+		@param sep: Separator in request name. Default is '.'
+		@type sep: Str
+		@return: Request name without any additions (e.g., request UUID, extension, ... etc)
+		@rtype: Str  
+		'''
+		
+		# Current implementation assumes the input request consists of the desired request name + '.' + if exists( UUID + '.' +) extension
+		return os.path.splitext(os.path.basename(req))[0].split(sep=sep)[0]
+	
+	def getReqUUIDFromPath(self,req:str,sep:str='.')->str:
+		''' Return request UUID from received compressed file path
+		@param req: Input request path
+		@type req: Str
+		@param sep: Separator in request name. Default is '.'
+		@type sep: Str
+		@return: Request UUID without any additions (e.g., request name, extension, ... etc)
+		@rtype: Str  
+		'''
+		
+		# Current implementation assumes the input request consists of the desired request name + '.' + if exists(UUID + '.' +) extension
+		if len(self.getReqPartfromReqPath(req, sep))==3:
+			return os.path.splitext(os.path.basename(req))[0].split(sep=sep)[1]
+		
+		return ''
+	
+	def getReqNameUUIDFromPath(self,req:str,sep:str='.')->str:
+		''' Return request UUID from received compressed file path
+		@param req: Input request path
+		@type req: Str
+		@param sep: Separator in request name. Default is '.'
+		@type sep: Str
+		@return: Request request name + UUID without any additions (e.g., extension, ... etc)
+		@rtype: Str  
+		'''
+		
+		# Current implementation assumes the input request consists of the desired request name + '.' + UUID + '.' + extension
+		return os.path.splitext(os.path.basename(req))[0]
+		
+	def unpackCompressedRequests(self,conf:dict=None,sets:List[str]=None,sep:str='.',flog:TextIOWrapper=None)->None:
 		''' Unpack any compressed requests under specified set_i(vifi_server) (i.e., (sub)workflow(vifi_server))
 		@param conf: VIFI configuration file
 		@type conf: dict
 		@param sets: List of required sets (i.e., (sub)workflow(vifi_server)) to unpack incoming requests. Defaults to all sets if None is specified
-		@type sets: List[str]  
+		@type sets: List[str] 
+		@param sep:  Separator in request name. Default is '.'
+		@type sep: Str 
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object) 
 		'''
@@ -1102,10 +1246,10 @@ class vifi():
 				# Unpack compressed files only, then remove the compressed file after extraction
 				for req in reqs:
 					# Unpack file according to file extension
-					if req.endswith('.zip'):
+					if self.checkCompressed(req):
 						
-						# Get the request name without extension
-						req_name=os.path.splitext(os.path.basename(req))[0]
+						# Get the base request name without additions
+						req_name=self.getReqNameFromPath(req)
 						
 						# Get the path to finished requests
 						script_path_out=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
@@ -1113,7 +1257,7 @@ class vifi():
 						
 						# If a directory exists in the 'finished' with the same name, then move it to working directory. Then extract the compressed file to update the contents of the retrieved directory
 						if os.path.exists(os.path.join(script_path_out,req_name)):
-							shutil.move(os.path.join(script_path_out,req_name), os.path.join(comp_path,req_name))
+							shutil.move(os.path.join(script_path_out,req), os.path.join(comp_path,req_name))
 						
 						# Now, extract the compressed request
 						with ZipFile(os.path.join(comp_path,req)) as f:
@@ -1124,6 +1268,21 @@ class vifi():
 						
 						# Change permissions for uncompressed folder (Currently, permissions are changed to 777 to allow writing by docker services into created folders)
 						self.changePermissionsRecursive(os.path.join(comp_path,req).split('.zip')[0])
+						
+						# Check if the uncompressed folder has any log files
+						if os.path.exists(os.path.join(comp_path,self.getReqNameUUIDFromPath(req,sep),".log.yml")):
+							rec_logf=os.path.join(comp_path,self.getReqNameUUIDFromPath(req,sep),".log.yml")
+						elif os.path.exists(os.path.join(comp_path,self.getReqNameUUIDFromPath(req,sep),".log.yaml")):
+							rec_logf=os.path.join(comp_path,self.getReqNameUUIDFromPath(req,sep),".log.yaml")
+						else:
+							rec_logf=None
+							
+						# If the uncompressed folder has any log file, then move the log files to the request log
+						if rec_logf:
+							# Create log directory if not exists
+							os.makedirs(os.path.join(self.vifi_conf['req_log_path'],req_name),exist_ok=True)
+							# Move the found log file to the requst log directory under current VIFI node
+							shutil.move(rec_logf,os.path.join(self.vifi_conf['req_log_path'],req_name))
 		except:
 			result='Error: "unpackCompressedRequests" function has error(vifi_server): '
 			if flog:
@@ -1165,7 +1324,7 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 				
-	def reqLog(self,req_log_path:str,req_log:dict,req:str='general_log')-> None:
+	def reqLog(self,req_log_path:str,req_log:dict,req:str)-> None:
 		''' Write request logs under specified path.
 		TODO: Currently, request log is written as YAML file
 		@param req_log_path: Path to keep request log
@@ -1180,8 +1339,8 @@ class vifi():
 		os.makedirs(req_log_path,exist_ok=True)
 		
 		# Write request log to created log file. Log file is created if not already exists
-		if not (req.endswith('.yml') or req.endswith('.yaml')):
-			req=req+".yml"
+		if not (req.endswith('.log.yml') or req.endswith('.log.yaml')):
+			req=req+".log.yml"
 		with open(os.path.join(req_log_path,req),'w') as f:
 			yaml.dump(req_log,f)
 			
@@ -1635,25 +1794,48 @@ class vifi():
 										except:
 											flog.write("Error: failed to delete service "+service_name+" at "+repr(time.time())+"\n")
 											continue
+										
+										# Create metadata log file, if required, in the finished directory to be sent with the rest of results. This file contains useful information for the receiving VIFI Node
+										self.createMetadata()
+
+										# Make a UUID to identify the compressed results that will be transfered (useful for log tracing)
+										res_uuid=str(uuid.uuid1())
 											
 										# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
 										if self.checkTransfer(conf_in['services'][ser]['s3']['transfer'],servs,ser,flog) and conf_in['services'][ser]['s3']['bucket']:	# s3_transfer is True and s3_buc has some value
-											self.s3Transfer(conf_in['services'][ser]['s3'], os.path.join(script_processed,req_res_path_per_request))
+											self.s3Transfer(conf_in['services'][ser]['s3'], \
+														os.path.join(script_processed,req_res_path_per_request))
 											flog.write("Transfered to S3 bucket at "+repr(time.time())+"\n")
+											self.req_list[request]['services'][service_name]['s3']={'sent_at':str(time.time())}
 										
 										# If NIFI is enabled, then transfer required results using NIFI 
 										if self.checkTransfer(conf_in['services'][ser]['nifi']['transfer'],servs,ser,flog):
-											if self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
+											res_name=self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
 															data_path=os.path.join(script_processed,req_res_path_per_request), \
-															pg_name=dset, \
-															tr_res_temp_name='tr_res_temp'):
+															res_id=res_uuid, pg_name=dset, \
+															tr_res_temp_name='tr_res_temp')
+											if res_name:
 												# NIFI transfer succeeded 
-												flog.write("Intermediate results transfer by NIFI succeeded at "+repr(time.time())+"\n")
+												flog.write("Intermediate results "+res_name+" transfer by NIFI succeeded at "+repr(time.time())+"\n")
+												self.req_list[request]['services'][service_name]['nifi']={'sent_at':str(time.time()),'res_file':os.path.basename(res_name)}
 											else:
 												# NIFI transfer failed
-												flog.write("Intermediate results transfer by NIFI failed at "+repr(time.time())+"\n")
-												# TODO: should the user request be terminated? or just continue with future service(vifi_server) 
-									
+												flog.write("Intermediate results "+res_name+" transfer by NIFI failed at "+repr(time.time())+"\n")
+												# TODO: should the user request be terminated? or just continue with future service(vifi_server)
+												
+										# If SFTP is enabled, then transfer required results using SFTP 
+										if self.checkTransfer(conf_in['services'][ser]['sftp']['transfer'],servs,ser,flog):
+											res_sftp=self.sftpTransfer(user_nifi_conf=conf_in['services'][ser]['sftp'], \
+															data_path=os.path.join(script_processed,req_res_path_per_request))
+											if res_sftp:
+												# sftp transfer succeeded 
+												self.req_list[request]['services'][service_name]['sftp']={'sent_at':str(time.time())}
+												flog.write("Transfer to SFTP Server succeeded at "+repr(time.time())+"\n")
+												
+											else:
+												# sftp transfer failed
+												flog.write("Transfer to SFTP Server failed at  "+repr(time.time())+"\n")
+																
 									else:
 										# Service failed
 										break	
@@ -1681,32 +1863,53 @@ class vifi():
 								self.req_list[request]['status']='success'
 								flog.write("Request "+request+" finished at "+repr(req_end_time)+"\n")
 								
+								# Create metadata log file, if required, in the finished directory to be sent with the rest of results. This file contains useful information for the receiving VIFI Node
+								self.createMetadata()
+								
 								# Move final results to final destination
 								if conf_in['fin_dest']['transfer']:
+									
+									# Make a UUID to identify the compressed results that will be transfered (useful for log tracing)
+									res_uuid=str(uuid.uuid1())
 									
 									# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
 									if conf_in['fin_dest']['s3']['transfer'] and conf_in['fin_dest']['s3']['bucket']:	  # s3_transfer is True and s3_buc has some value
 										self.s3Transfer(conf_in['fin_dest']['s3'], os.path.join(script_finished,req_res_path_per_request))
 										flog.write("Transfered final results to S3 bucket at "+repr(time.time())+"\n")
 									
+									# If SFTP is enabled, then transfer required results using SFTP 
+									if conf_in['fin_dest']['sftp']['transfer']:
+										res_sftp=self.sftpTransfer(user_nifi_conf=conf_in['services'][ser]['sftp'], \
+														data_path=os.path.join(script_finished,req_res_path_per_request))
+										if res_sftp:
+											# sftp transfer succeeded 
+											self.req_list[request]['sftp']={'sent_at':str(time.time())}
+											flog.write("Transfer final results to SFTP Server succeeded at "+repr(time.time())+"\n")
+											
+										else:
+											# sftp transfer failed
+											flog.write("Transfer final results to SFTP Server failed at  "+repr(time.time())+"\n")
+												
 									# If NIFI is enabled, then transfer required results using NIFI 
 									if conf_in['fin_dest']['nifi']['transfer']:
-										if self.nifiTransfer(user_nifi_conf=conf_in['fin_dest']['nifi']['transfer'], \
+										res_name=self.nifiTransfer(user_nifi_conf=conf_in['fin_dest']['nifi']['transfer'], \
 															data_path=os.path.join(script_finished,req_res_path_per_request), \
-															pg_name=dset, \
-															tr_res_temp_name='tr_res_temp'):
+															res_id=res_uuid,pg_name=dset, \
+															tr_res_temp_name='tr_res_temp')
+										if res_name:
 											# Wait for the transfer to be done
-											flog.write("Final results transfer by NIFI succeeded at "+repr(time.time())+"\n")
+											flog.write("Final results "+res_name+" transfer by NIFI succeeded at "+repr(time.time())+"\n")
+											self.req_list[request]['nifi']={'sent_at':str(time.time())}
 										else:
 											# Final results transfer by NIFI failed
-											flog.write("Final results transfer by NIFI failed at "+repr(time.time())+"\n")
+											flog.write("Final results "+res_name+" transfer by NIFI failed at "+repr(time.time())+"\n")
 							else:
 								shutil.move(script_processed,script_failed)
 								self.req_list[request]['status']='fail'
 								flog.write("Request "+request+" FAILED at "+repr(req_end_time)+"\n")
 								
 							# Write the request log
-							self.reqLog(req_log_path=self.vifi_conf['req_log_path'], req_log=self.req_list[request],req=request+'_'+str(time.time()))
+							self.reqLog(req_log_path=self.vifi_conf['req_log_path'], req_log=self.req_list[request],req=request+'.'+str(uuid.uuid1())+'.log.yml')
 							
 							# Clean the request log to save resource
 							del self.req_list[request]
