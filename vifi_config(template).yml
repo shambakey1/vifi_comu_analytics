@@ -34,7 +34,7 @@ req_log_path: '/home/ubuntu/requests/logs'
 middleware: 
  log: 
   condition: True
-  url: 'https://vifiuitasks-aws.uncc.edu/mw/task/5c94e53cdfb8de1cfa3e6d71'
+  url: 'https://vifiuitasks-aws.uncc.edu/mw/task/5c94e53cdfb8de1cfa3e6d71/logs'
   header: 
    x-api-key: "08d0be7ac2af76aced98d6618eae63b05f5ee1cb44bcabd4"
    Content-Type: "application/json"
