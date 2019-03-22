@@ -19,6 +19,7 @@ from multiprocessing import Process
 from multiprocessing.managers import BaseManager
 from _io import TextIOWrapper
 import argparse
+from requests.models import Response
 
 class vifi():
 	'''
@@ -1323,7 +1324,45 @@ class vifi():
 			else:
 				print(result)
 				traceback.print_exc()
-				
+	
+	def logToMiddleware(self,middleware_conf:dict,body:dict={},flog:TextIOWrapper=None)->bool:
+		''' Write log to Middleware
+		@param middleware: The middleware configuration including the URL of the central log
+		@type middleware: dict
+		@param body: (Optional) contents of the log message
+		@type body: dict
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object)
+		@return: True if log sent correctly. False, otherwise
+		@rtype: bool  
+		'''
+		
+		try:
+			# Extract required middleware log parameters
+			log_condition=middleware_conf['conition']
+			log_url=middleware_conf['url']
+			log_header=middleware_conf['header']
+			
+			# Send log message to middleware log
+			if log_condition and body:
+				r=requests.post(url=log_url,headers=log_header,json=body)
+			
+			# Check response. Return True if correct. False, otherwise
+			if r.status_code == requests.codes.ok:
+				return True
+			else:
+				return False
+		
+		except:
+			result='Error: "logToMiddleware" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
+		
+					
 	def reqLog(self,req_log_path:str,req_log:dict,req:str)-> None:
 		''' Write request logs under specified path.
 		TODO: Currently, request log is written as YAML file
@@ -1656,7 +1695,14 @@ class vifi():
 							final_req_stat=True	# True is a temporary value. It changes to False if any underlying service fails, or due to any other failure to process the request
 							
 							# Update the internal list of processed requests with 'status=start'
-							self.req_list[request]={'status':'start','start':str(time.time()),'services':{}}
+							mes_time=time.time()
+							self.req_list[request]={}
+							self.req_list[request]['start']=mes_time
+							self.req_list[request]['services']={}
+							
+							# Update central middleware log if required
+							mes={'request':request,'start':mes_time}
+							self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 							
 							# Initialize path parameters for current request
 							script_processed=os.path.join(script_path_in,request)
@@ -1757,6 +1803,10 @@ class vifi():
 											self.req_list[request]['services'][service_name]={'tasks':task_no}
 											self.req_list[request]['services'][service_name]['start']=ser_start_time
 											flog.write(repr(ser_start_time)+":"+str(client.services.get(service_name))+"\n")	# Log the command
+											
+											# Update central middleware log if required
+											mes={'request':request,'service':service_name,'tasks':task_no,'start':ser_start_time}
+											self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 										else:
 											flog.write("Error: Could not create service "+service_name+": \n")
 											traceback.print_exc(file=flog)
@@ -1770,8 +1820,13 @@ class vifi():
 										# Log completeness time
 										ser_end_time=time.time()
 										self.req_list[request]['services'][service_name]['end']=ser_end_time
+										self.req_list[request]['services'][service_name]['status']='succeed'
 										flog.write("Finished service "+service_name+" for request "+request+" at "+repr(ser_end_time)+"\n\n")
 										
+										# Update central middleware log if required
+										mes={'request':request,'service':service_name,'end':ser_end_time,'status':'succeed'}
+										self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
+											
 										# Move required results, if any, to specified destinations
 										if conf_in['services'][ser]['results']:
 											for f_res in conf_in['services'][ser]['results']:
@@ -1805,8 +1860,13 @@ class vifi():
 										if self.checkTransfer(conf_in['services'][ser]['s3']['transfer'],servs,ser,flog) and conf_in['services'][ser]['s3']['bucket']:	# s3_transfer is True and s3_buc has some value
 											self.s3Transfer(conf_in['services'][ser]['s3'], \
 														os.path.join(script_processed,req_res_path_per_request))
-											flog.write("Transfered to S3 bucket at "+repr(time.time())+"\n")
-											self.req_list[request]['services'][service_name]['s3']={'sent_at':str(time.time())}
+											mes_time=time.time()
+											flog.write("Transfered to S3 bucket at "+repr(mes_time)+"\n")
+											self.req_list[request]['services'][service_name]['s3']={'sent':mes_time}
+											
+											# Update central middleware log if required
+											mes={'request':request,'service':service_name,'s3':{'sent':mes_time}}
+											self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 										
 										# If NIFI is enabled, then transfer required results using NIFI 
 										if self.checkTransfer(conf_in['services'][ser]['nifi']['transfer'],servs,ser,flog):
@@ -1816,8 +1876,13 @@ class vifi():
 															tr_res_temp_name='tr_res_temp')
 											if res_name:
 												# NIFI transfer succeeded 
-												flog.write("Intermediate results "+res_name+" transfer by NIFI succeeded at "+repr(time.time())+"\n")
-												self.req_list[request]['services'][service_name]['nifi']={'sent_at':str(time.time()),'res_file':os.path.basename(res_name)}
+												mes_time=time.time()
+												flog.write("Intermediate results "+res_name+" transfer by NIFI succeeded at "+repr(mes_time)+"\n")
+												self.req_list[request]['services'][service_name]['nifi']={'sent':mes_time,'res_file':os.path.basename(res_name)}
+												
+												# Update central middleware log if required
+												mes={'request':request,'service':service_name,'nifi':{'sent':mes_time,'res_file':os.path.basename(res_name)}}
+												self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 											else:
 												# NIFI transfer failed
 												flog.write("Intermediate results "+res_name+" transfer by NIFI failed at "+repr(time.time())+"\n")
@@ -1829,8 +1894,13 @@ class vifi():
 															data_path=os.path.join(script_processed,req_res_path_per_request))
 											if res_sftp:
 												# sftp transfer succeeded 
-												self.req_list[request]['services'][service_name]['sftp']={'sent_at':str(time.time())}
-												flog.write("Transfer to SFTP Server succeeded at "+repr(time.time())+"\n")
+												mes_time=time.time()
+												self.req_list[request]['services'][service_name]['sftp']={'sent':mes_time}
+												flog.write("Transfer to SFTP Server succeeded at "+repr(mes_time)+"\n")
+												
+												# Update central middleware log if required
+												mes={'request':request,'service':service_name,'sftp':{'sent':mes_time}}
+												self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 												
 											else:
 												# sftp transfer failed
@@ -1845,8 +1915,14 @@ class vifi():
 									
 								if not tmp_ser_stat:
 									#TODO: If current service fails, then abort whole request. This behavior may need modifications in the future
-									self.req_list[request]['services'][service_name]={'end':'failed'}
-									flog.write("Failed service "+service_name+" for request "+request+" at "+repr(time.time())+"\n\n")
+									mes_time=time.time()
+									self.req_list[request]['services'][service_name]['status']='failed'
+									self.req_list[request]['services'][service_name]['end']=mes_time
+									flog.write("Failed service "+service_name+" for request "+request+" at "+repr(mes_time)+"\n\n")
+									
+									# Update central middleware log if required
+									mes={'request':request,'service':service_name,'status':'failed','end':mes_time}
+									self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 									
 								# Update request status according to current service status, and abort request if any service fails
 								final_req_stat=final_req_stat and tmp_ser_stat
@@ -1857,11 +1933,19 @@ class vifi():
 							req_end_time=time.time()
 							self.req_list[request]['end']=req_end_time
 							
+							# Update central middleware log if required
+							mes={'request':request,'end':req_end_time}
+							self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
+							
 							# Move finished request to successful requests path, or to failed otherwise. Update internal requests dictionary accordingly
 							if final_req_stat:
 								shutil.move(script_processed,script_finished)
 								self.req_list[request]['status']='success'
 								flog.write("Request "+request+" finished at "+repr(req_end_time)+"\n")
+								
+								# Update central middleware log if required
+								mes={'request':request,'status':'success'}
+								self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 								
 								# Create metadata log file, if required, in the finished directory to be sent with the rest of results. This file contains useful information for the receiving VIFI Node
 								self.createMetadata()
@@ -1883,12 +1967,16 @@ class vifi():
 														data_path=os.path.join(script_finished,req_res_path_per_request))
 										if res_sftp:
 											# sftp transfer succeeded 
-											self.req_list[request]['sftp']={'sent_at':str(time.time())}
-											flog.write("Transfer final results to SFTP Server succeeded at "+repr(time.time())+"\n")
+											mes_time=time.time()
+											self.req_list[request]['sftp']={'sent':mes_time}
+											flog.write("Transfer final results to SFTP Server succeeded at "+repr(mes_time)+"\n")
 											
+											# Update central middleware log if required
+											mes={'request':request,'sftp':{'sent':mes_time}}
+											self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 										else:
 											# sftp transfer failed
-											flog.write("Transfer final results to SFTP Server failed at  "+repr(time.time())+"\n")
+											flog.write("Transfer final results to SFTP Server failed at  "+repr(mes_time)+"\n")
 												
 									# If NIFI is enabled, then transfer required results using NIFI 
 									if conf_in['fin_dest']['nifi']['transfer']:
@@ -1898,15 +1986,25 @@ class vifi():
 															tr_res_temp_name='tr_res_temp')
 										if res_name:
 											# Wait for the transfer to be done
-											flog.write("Final results "+res_name+" transfer by NIFI succeeded at "+repr(time.time())+"\n")
-											self.req_list[request]['nifi']={'sent_at':str(time.time())}
+											mes_time=time.time()
+											flog.write("Final results "+res_name+" transfer by NIFI succeeded at "+repr(mes_time)+"\n")
+											self.req_list[request]['nifi']={'sent':mes_time}
+											
+											# Update central middleware log if required
+											mes={'request':request,'nifi':{'sent':mes_time}}
+											self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 										else:
 											# Final results transfer by NIFI failed
 											flog.write("Final results "+res_name+" transfer by NIFI failed at "+repr(time.time())+"\n")
 							else:
 								shutil.move(script_processed,script_failed)
-								self.req_list[request]['status']='fail'
-								flog.write("Request "+request+" FAILED at "+repr(req_end_time)+"\n")
+								mes_time=time.time()
+								self.req_list[request]['status']='failed'
+								flog.write("Request "+request+" FAILED at "+repr(mes_time)+"\n")
+								
+								# Update central middleware log if required
+								mes={'request':request,'status':'failed'}
+								self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 								
 							# Write the request log
 							self.reqLog(req_log_path=self.vifi_conf['req_log_path'], req_log=self.req_list[request],req=request+'.'+str(uuid.uuid1())+'.log.yml')

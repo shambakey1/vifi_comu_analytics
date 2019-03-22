@@ -28,8 +28,16 @@ Prometheus_parameters:
   
 ############ LOGGING PARAMETERS #################
 vifi_log: '/home/ubuntu/requests/logs/vifi_log.out'
-req_log_path: '/home/ubuntu/requests/logs' 
+req_log_path: '/home/ubuntu/requests/logs'
 
+########## MIDDLEWARE PARAMETERS ############ 
+middleware: 
+ log: 
+  condition: True
+  url: 'http://vifiuitasks-aws.uncc.edu/mw/task/5c8a546a0ef02801007653a0/logs'
+  header: 
+   x-api-key: "08d0be7ac2af76aced98d6618eae63b05f5ee1cb44bcabd4"
+   Content-Type: "application/json"
 ########## SUPPORTED COMPRESSED TYPES ############
 compressed: 
 - zip
