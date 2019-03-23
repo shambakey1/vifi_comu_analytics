@@ -1339,7 +1339,7 @@ class vifi():
 		
 		try:
 			# Extract required middleware log parameters
-			log_condition=middleware_conf['conition']
+			log_condition=middleware_conf['condition']
 			log_url=middleware_conf['url']
 			log_header=middleware_conf['header']
 			
