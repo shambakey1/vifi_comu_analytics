@@ -38,6 +38,7 @@ middleware:
   header: 
    x-api-key: "08d0be7ac2af76aced98d6618eae63b05f5ee1cb44bcabd4"
    Content-Type: "application/json"
+   
 ########## SUPPORTED COMPRESSED TYPES ############
 compressed: 
 - zip

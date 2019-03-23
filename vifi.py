@@ -867,7 +867,7 @@ class vifi():
 				traceback.print_exc()
 			
 
-	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,res_id:str='',pg_name:str,tr_res_temp_name:str='tr_res_temp', \
+	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,res_id:str='',pg_name:str=None,tr_res_temp_name:str='tr_res_temp', \
 					flog:TextIOWrapper=None)->str:
 		''' Transfer required results as a compressed zip file using NIFI
 		NOTE: Current implementation just creates the compressed file to be transfered by NIFI. Current implementation 

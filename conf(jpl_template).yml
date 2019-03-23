@@ -5,7 +5,7 @@
 
 userid: &userid jpl_cordex_sg1           # User name should be a universal unique name (e.g., the username at institution)
 fin_dest: # Final destination to transfer final results
- transfer: True # If true, then navigate all subsections to determin where final results will be transfered. Otherwise, final results will not be transfered anywhere, evenif some sub-sections have confirmed transmission of final results
+ transfer: False # If true, then navigate all subsections to determin where final results will be transfered. Otherwise, final results will not be transfered anywhere, evenif some sub-sections have confirmed transmission of final results
  s3:                        # This section for S3 bucket transfer of specified results
   transfer: False
   bucket: uncc-vifi-bucket
