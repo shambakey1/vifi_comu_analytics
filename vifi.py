@@ -557,9 +557,9 @@ class vifi():
 				envs.extend(user_envs)
 			
 			# Mount the user request folder to the specified container_dir if any. Otherwise, the user request
-			# folder is mapped to the root directory in the container
+			# folder is mapped to the root directory in the container.
 			if not container_dir:
-				container_dir=os.path.abspath(os.sep)
+				container_dir=os.path.join(os.path.abspath(os.sep),request)
 			mnts=[os.path.join(script_path_in,request)+":"+container_dir+":rw"]	# Initialize list of mounts for user'vifi_server request
 				
 			# Mount the data directories
