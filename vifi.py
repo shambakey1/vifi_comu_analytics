@@ -870,8 +870,8 @@ class vifi():
 	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,res_id:str='',pg_name:str=None,tr_res_temp_name:str='tr_res_temp', \
 					flog:TextIOWrapper=None)->str:
 		''' Transfer required results as a compressed zip file using NIFI
-		NOTE: Current implementation just creates the compressed file to be transfered by NIFI. Current implementation 
-		does not transfer the file by itself. The transfer process is done by NIFI workflow design
+		@attention: Current implementation just creates the compressed file to be transfered by NIFI. Current implementation does not transfer the file by itself. The transfer process is done by NIFI workflow design
+		@note: If result files and/or directories are specified, then only the results files/directories are transferred. Otherwise, the whole results directory is transfered
 		@param user_nifi_conf: User configurations related to NIFI
 		@type user_nifi_conf: dict  
 		@param data_path: Directory path of file to be transfered
@@ -890,8 +890,17 @@ class vifi():
 		
 		try:
 			
-			# Copy the results directory to a user_name directory, under the results directory, if not already exists
-			shutil.copytree(data_path, os.path.join(data_path,user_nifi_conf['archname']))
+			# Copy results file(s) and/or directories, if specified, to the created user_name directory. Otherwise, copy the whole results directory to a user_name directory, under the results directory, if not already exists
+			if 'results' in user_nifi_conf and user_nifi_conf['results']:
+				# Create the user_name directory to hold the intermediate results that will be transfered
+				os.makedirs(os.path.join(data_path,user_nifi_conf['archname']),exist_ok=False)
+				for res in user_nifi_conf['results']:
+					if os.path.isfile(os.path.join(data_path,res)):
+						shutil.copy(os.path.join(data_path,res), os.path.join(data_path,user_nifi_conf['archname']))
+					elif os.path.isdir(os.path.join(data_path,res)):
+						shutil.copytree(os.path.join(data_path,res),os.path.join(data_path,user_nifi_conf['archname'],res))
+			else:
+				shutil.copytree(data_path, os.path.join(data_path,user_nifi_conf['archname']))
 			
 			# Compress the created user_name directory
 			shutil.make_archive(os.path.join(data_path,user_nifi_conf['archname']), 'zip', data_path, user_nifi_conf['archname'])
@@ -1011,6 +1020,10 @@ class vifi():
 			
 			# Delete the remote process group
 			rpg_api.remove_remote_process_group(tr_res_remote.id,version=tr_res_remote.revision.version)
+			
+			# PRECAUTION: Delete the compressed result file if still exists. Otherwise, the compressed file may conflict with the compressed result files of other services
+			if os.path.isfile(os.path.join(data_path,res_name)):
+				os.remove(os.path.join(data_path,res_name))
 			
 			# Retun (uniquely identified) compressed result file name, without path, to indicate transfer success
 			return os.path.basename(res_name)
@@ -1543,7 +1556,9 @@ class vifi():
 		
 	def serIterate(self,iter_conf:dict=None,ser_it_no:int=0,flog:TextIOWrapper=None)-> bool:
 		''' Determine if it is required to repeat the service again. If no configuration is given, then the service is not repeated any more.
-		NOTE: Current implementation just checks that maximum number of iterations has not been exceeded. Future implementation may encounter other conditions.
+		Current implementation checks:
+		1- Maximum number of iterations has not been exceeded.
+		2- If file named 'stop.iterating' exists, then iteration stops. The 'stop.iterating' file is produced by current service to stop iteration. The file can contain further information
 		@param iter_conf: Service configuration for the iterations
 		@type iter_conf: dict
 		@param ser_it_no: Current service iteration number. Incremented each time the service runs
@@ -1555,6 +1570,8 @@ class vifi():
 		'''
 		
 		try:
+			if os.path.isfile('stop.iterating'):
+				return False
 			if iter_conf:
 				if ser_it_no<iter_conf['max_rep']:
 					return True
@@ -1868,25 +1885,27 @@ class vifi():
 											mes={'request':request,'service':service_name,'s3':{'sent':mes_time}}
 											self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
 										
-										# If NIFI is enabled, then transfer required results using NIFI 
-										if self.checkTransfer(conf_in['services'][ser]['nifi']['transfer'],servs,ser,flog):
-											res_name=self.nifiTransfer(user_nifi_conf=conf_in['services'][ser]['nifi'], \
-															data_path=os.path.join(script_processed,req_res_path_per_request), \
-															res_id=res_uuid, pg_name=dset, \
-															tr_res_temp_name='tr_res_temp')
-											if res_name:
-												# NIFI transfer succeeded 
-												mes_time=time.time()
-												flog.write("Intermediate results "+res_name+" transfer by NIFI succeeded at "+repr(mes_time)+"\n")
-												self.req_list[request]['services'][service_name]['nifi']={'sent':mes_time,'res_file':os.path.basename(res_name)}
-												
-												# Update central middleware log if required
-												mes={'request':request,'service':service_name,'nifi':{'sent':mes_time,'res_file':os.path.basename(res_name)}}
-												self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
-											else:
-												# NIFI transfer failed
-												flog.write("Intermediate results "+res_name+" transfer by NIFI failed at "+repr(time.time())+"\n")
-												# TODO: should the user request be terminated? or just continue with future service(vifi_server)
+										# If NIFI(s) is(are) enabled, then transfer required results using NIFI
+										if 'nifi' in conf_in['services'][ser]:
+											for nifi_sec in conf_in['services'][ser]['nifi']:
+												if self.checkTransfer(nifi_sec['transfer'],servs,ser,flog):
+													res_name=self.nifiTransfer(user_nifi_conf=nifi_sec, \
+																	data_path=os.path.join(script_processed,req_res_path_per_request), \
+																	res_id=res_uuid, pg_name=dset, \
+																	tr_res_temp_name='tr_res_temp')
+													if res_name:
+														# NIFI transfer succeeded 
+														mes_time=time.time()
+														flog.write("Intermediate results "+res_name+" transfer by NIFI succeeded at "+repr(mes_time)+"\n")
+														self.req_list[request]['services'][service_name]['nifi']={'sent':mes_time,'res_file':os.path.basename(res_name)}
+														
+														# Update central middleware log if required
+														mes={'request':request,'service':service_name,'nifi':{'sent':mes_time,'res_file':os.path.basename(res_name)}}
+														self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
+													else:
+														# NIFI transfer failed
+														flog.write("Intermediate results "+res_name+" transfer by NIFI failed at "+repr(time.time())+"\n")
+														# TODO: should the user request be terminated? or just continue with future service(vifi_server)
 												
 										# If SFTP is enabled, then transfer required results using SFTP 
 										if self.checkTransfer(conf_in['services'][ser]['sftp']['transfer'],servs,ser,flog):

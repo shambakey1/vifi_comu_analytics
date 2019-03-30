@@ -57,7 +57,7 @@ services:                    # Group of required services for current request. T
   mnts:                      # List of user specified mounts (in the form source:target:options) to be used within the containerized application
   - cordex1.py:/usr/local/climate/RCMES/CORDEX/cordex1.py
   - nam_out:/data/output/CORDEX/analysis:rw
-  results:                   # List of result files of the service
+  results: &results                  # List of result files of the service
   ser_check_thr: 300         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
     transfer: 
@@ -72,12 +72,22 @@ services:                    # Group of required services for current request. T
     username: 'nifisftp'
     password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
   nifi:                        # This section for NIFI transfer of specified results
-    transfer: 
-     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one 
+  - transfer: 
+     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
     archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
     archtype: 'zip'
-    target_uri:  # Target NIFI remote process group to transfer results file
-    target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group  
+    target_uri: 'a.b.c.d' # Target NIFI remote process group to transfer results file
+    target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
+    results: *results
+  - transfer: 
+     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
+    archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
+    archtype: 'zip'
+    target_uri: 'e.f.g.h' # Target NIFI remote process group to transfer results file
+    target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
+    results: 
+    - a.out
+    - b.out  
  
  ocw_cordex_stg2:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
@@ -111,7 +121,7 @@ services:                    # Group of required services for current request. T
   mnts:                      # List of user specified mounts (in the form source:target:options) to be used within the containerized application
   - cordex2.py:/usr/local/climate/RCMES/CORDEX/cordex2.py
   - nam_out:/data/output/CORDEX/analysis:rw
-  results:                   # List of result files of the service
+  results: &results                  # List of result files of the service
   - nam_out
   ser_check_thr: 3600         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
@@ -127,10 +137,19 @@ services:                    # Group of required services for current request. T
     username: 'nifisftp'
     password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
   nifi:                        # This section for NIFI transfer of specified results
-    transfer: 
+  - transfer: 
      condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
     archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
     archtype: 'zip'
-    target_uri:  # Target NIFI remote process group to transfer results file
+    target_uri: 'a.b.c.d' # Target NIFI remote process group to transfer results file
     target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
-    
+    results: *results
+  - transfer: 
+     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
+    archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
+    archtype: 'zip'
+    target_uri: 'e.f.g.h' # Target NIFI remote process group to transfer results file
+    target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
+    results: 
+    - a.out
+    - b.out    
