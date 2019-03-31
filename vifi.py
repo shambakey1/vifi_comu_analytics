@@ -837,29 +837,30 @@ class vifi():
 		
 		try:
 			
-			# Determine if it is required to transfer results by NIFI (in current iteration)
-			if transfer_conf['condition'].lower()=='all':	# If True, then transfer any results by NIFI for each iteration
-				return True
+			# Lower case the condition string
+			cond=transfer_conf['condition'].lower()
 			
-			if transfer_conf['condition'].lower()=='never':	# If True, then never transfer any results by NIFI for any iteration
-				return False
+			# Determine if it is required to transfer results (in current iteration)
+			cond=cond.replace('all','True')						# If True, then transfer any results for each iteration
 			
-			if transfer_conf['condition'].lower()=='last_iteration':	# If True, then transfer results only if it is already last iteration for current service
-				if servs[ser]['cur_iter']==servs[ser]['max_rep']:
-					return True
-				else:
-					return False
+			cond=cond.replace('never','False')					# If True, then never transfer any results for any iteration
 			
-			if transfer_conf['condition'].lower()=='all_but_last_iteration':	# If True, then transfer results of current service iteration only if it not the last iteration
-				if servs[ser]['cur_iter']<servs[ser]['max_rep']:
-					return True
-				else:
-					return False
+			if servs[ser]['cur_iter']==servs[ser]['max_rep']:	# If True, then transfer results only if it is already last iteration for current service
+				cond=cond.replace('last_iteration','True')
+			else:
+				cond=cond.replace('last_iteration','False')
 			
-			if transfer_conf['condition'].lower()=='stop_iteration':	# If True, then transfer results of current service iteration only if the service stops iterations (i.e., stop.iterating file exists)
-				return True
+			if servs[ser]['cur_iter']<servs[ser]['max_rep']:	# If True, then transfer results of current service iteration only if it not the last iteration
+				cond=cond.replace('all_but_last_iteration','True')
+			else:
+				cond=cond.replace('all_but_last_iteration','False')
 			
-			return False
+			if os.path.isfile('stop.iterating'):				# If True, then transfer results of current service iteration only if the service stops iterations (i.e., stop.iterating file exists)
+				cond=cond.replace('stop_iteration','True')
+			else:
+				cond=cond.replace('stop_iteration','False')
+				
+			return eval(cond)
 		
 		except:
 			
