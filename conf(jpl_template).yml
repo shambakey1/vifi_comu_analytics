@@ -129,6 +129,7 @@ services:                    # Group of required services for current request. T
      condition: 'last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
     bucket: uncc-vifi-bucket
     path: jpl_cordex
+    results: *results                 # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
   sftp:                        # This section for SFTP Server transfer of specified results
     transfer: 
      condition: 'last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
@@ -136,6 +137,10 @@ services:                    # Group of required services for current request. T
     port: 22
     username: 'nifisftp'
     password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
+    results:                  # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
+    - 'grad.out'
+    - 'nll.out'
+    - 'thetas.out'
   nifi:                        # This section for NIFI transfer of specified results
   - transfer: 
      condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one

@@ -855,6 +855,11 @@ class vifi():
 					return True
 				else:
 					return False
+			
+			if transfer_conf['condition'].lower()=='stop_iteration':	# If True, then transfer results of current service iteration only if the service stops iterations (i.e., stop.iterating file exists)
+				return True
+			
+			return False
 		
 		except:
 			
@@ -1054,11 +1059,29 @@ class vifi():
 		
 		try:
 			s3 = boto3.resource('s3')
-			for path,dir,f_res in os.walk(data_path):
-				for f in f_res:
-					data = open(os.path.join(path,f), 'rb')
-					key_obj=user_s3_conf['path']+"/"+f
-					s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
+			
+			# If results are specified in the s3 section, then upload specified results to the s3 bucket
+			if 'results' in user_s3_conf and user_s3_conf['results']:
+				for res_item in user_s3_conf['results']:
+					res=os.path.join(data_path,res_item)
+					# If result is file, then upload the file
+					if os.path.isfile(res):
+						data = open(res, 'rb')
+						key_obj=user_s3_conf['path']+"/"+res
+						s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
+					elif os.path.isdir(res):
+						for path,dir,f_res in os.walk(res):
+							for f in f_res:
+								data = open(os.path.join(path,f), 'rb')
+								key_obj=user_s3_conf['path']+"/"+f
+								s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
+			# If no results are specified for the s3 section, then upload the whole results section
+			else:
+				for path,dir,f_res in os.walk(data_path):
+					for f in f_res:
+						data = open(os.path.join(path,f), 'rb')
+						key_obj=user_s3_conf['path']+"/"+f
+						s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 		except:
 			result='Error: "s3Transfer" function has error(vifi_server): '
 			if flog:
@@ -1101,9 +1124,23 @@ class vifi():
 			
 			sftp_client = paramiko.SFTPClient.from_transport(transport)
 			res=True	# True if files are sent correctly to the SFTP server. False, otherwise.
-			for path,dir,f_res in os.walk(data_path):
-				for f in f_res:
-					res &= sftp_client.put(os.path.join(path,f), os.path.join(dest_path,f))
+			
+			# If results are specified in the sftp section, then upload specified results to the sftp
+			if 'results' in user_sftp_conf and user_sftp_conf['results']:
+				for res_item in user_sftp_conf['results']:
+					res=os.path.join(data_path,res_item)
+					# If result is file, then upload the file
+					if os.path.isfile(res):
+						res &= sftp_client.put(res, os.path.join(dest_path,res_item))
+					elif os.path.isdir(res):
+						for path,dir,f_res in os.walk(res):
+							for f in f_res:
+								res &= sftp_client.put(os.path.join(path,f), os.path.join(dest_path,f))
+			# If no results are specified for the sftp section, then upload the whole results section
+			else:
+				for path,dir,f_res in os.walk(data_path):
+					for f in f_res:
+						res &= sftp_client.put(os.path.join(path,f), os.path.join(dest_path,f))
 			
 			final_res=res
 			
