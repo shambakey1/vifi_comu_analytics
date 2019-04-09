@@ -194,3 +194,29 @@ domains:
       user: '1000' # User to run docker commands as
       groups:        # List of groups that the container process will run as
       - '1000'
+      
+   stat_analysis:
+     name: stat_analysis
+     mode: 0o777
+     nifi: 
+      transfer: True
+      host: 'http://localhost:8090/nifi-api'
+      registry: 'http://localhost:18080/nifi-registry-api'
+     exist_ok: True  # If true, use alrady existing folder if one does
+     terminate: inf # Specifies the time to wait before removing any service (after request processing). If '0', then any created service is removed directly after processing. If 'inf', then the service can wait forever. Otherwise, the service will remain for the spcified amount of time, then removed.
+     set_function: # Function to use to process any request under current set. Thus, changing default request processing behavior (default bahavior is to keep incoming request, process them as containerized applications in a cluster, then transfer results to required destinations)
+     data_dir: # Result from data management layer
+      dataset:
+       path: "/home/ubuntu/dataset.csv"
+       schema: # TODO: May be important for data management. This node can point to other nodes (or document files) that contain detailed description of schema
+       keywords: # TODO: May be important for data management and search for related data
+     docker:         # Docker parameters for specific workflow
+      docker_img:  #TODO: This can be a list of allowed images to run within this set. In this case, the user can select any of the allowed images, but nothing else, which may be important for security reasons (e.g., the institution is concerned with the images running at its side). If "any" is the first value in the list, this means that the end user can select any image 
+       'shambakey1/vifi_statistical_analysis' :
+        registery: "https://hub.docker.com/r/shambakey1/vifi_statistical_analysis"
+      docker_rep: "any"
+      ttl: 3600  # If 'any', then user can specify whatever value. Otherwise, user specified value should not exceed this value
+      user: '1000' # User to run docker commands as
+      groups:        # List of groups that the container process will run as
+      - '1000'
+      

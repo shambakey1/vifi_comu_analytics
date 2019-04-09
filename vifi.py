@@ -563,8 +563,9 @@ class vifi():
 			mnts=[os.path.join(script_path_in,request)+":"+container_dir+":rw"]	# Initialize list of mounts for user'vifi_server request
 				
 			# Mount the data directories
-			for x in user_data_dir.keys():	# mount data physical path at VIFI Node to user specified paths
-				mnts.append(data_dir[x]['path']+":"+user_data_dir[x]['container_data_path'])
+			if user_data_dir:
+				for x in user_data_dir.keys():	# mount data physical path at VIFI Node to user specified paths
+					mnts.append(data_dir[x]['path']+":"+user_data_dir[x]['container_data_path'])
 				
 			# Append any additional user mounts (which should be in the form source:target:options) relative to the user request directory 
 			if user_mnts:
