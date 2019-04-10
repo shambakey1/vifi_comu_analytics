@@ -1796,6 +1796,7 @@ class vifi():
 								# Initialize temporary service status to record status of created service (True if service succeeds)
 								tmp_ser_stat=False
 								
+								
 								# Check if the service still needs to iterate
 								while self.serIterate(iter_conf=conf_in['services'][ser]['iterative'],ser_it_no=ser_it,stop_itarting_path=os.path.join(script_path_in,request,"stop.iterating")):
 									
