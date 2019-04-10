@@ -1181,8 +1181,8 @@ class vifi():
 					if os.stat(file).st_uid==os.getuid() and os.stat(file).st_gid==os.getgid():
 						os.chmod(file,mode)
 			
-			if os.stat(root).st_uid==os.getuid() and os.stat(root).st_gid==os.getgid():
-				os.chmod(root,mode)	
+				if os.stat(root).st_uid==os.getuid() and os.stat(root).st_gid==os.getgid():
+					os.chmod(root,mode)	
 					
 		except:
 			result='changePermissionsRecursive" function has error(vifi_server): '
