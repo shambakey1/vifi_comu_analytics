@@ -1109,11 +1109,8 @@ class vifi():
 		@type data_path: str
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
-		@return: True if file(s) transferred correctly
-		@rtype: bool    
 		'''			
-		final_res=False
-		
+
 		try:
 
 			# Extract required SFTP parameters from user configuration file
@@ -1131,7 +1128,7 @@ class vifi():
 			transport.connect(username=username, password=password)
 			
 			sftp_client = paramiko.SFTPClient.from_transport(transport)
-			res=True	# True if files are sent correctly to the SFTP server. False, otherwise.
+			res=[]	# True if files are sent correctly to the SFTP server. False, otherwise.
 			
 			# If results are specified in the sftp section, then upload specified results to the sftp
 			if 'results' in user_sftp_conf and user_sftp_conf['results']:
@@ -1139,18 +1136,16 @@ class vifi():
 					res=os.path.join(data_path,res_item)
 					# If result is file, then upload the file
 					if os.path.isfile(res):
-						res &= sftp_client.put(res, os.path.join(dest_path,res_item))
+						sftp_client.put(res, os.path.join(dest_path,res_item))
 					elif os.path.isdir(res):
 						for path,dir,f_res in os.walk(res):
 							for f in f_res:
-								res &= sftp_client.put(os.path.join(path,f), os.path.join(dest_path,f))
+								sftp_client.put(os.path.join(path,f), os.path.join(dest_path,f))
 			# If no results are specified for the sftp section, then upload the whole results section
 			else:
 				for path,dir,f_res in os.walk(data_path):
 					for f in f_res:
-						res &= sftp_client.put(os.path.join(path,f), os.path.join(dest_path,f))
-			
-			final_res=res
+						sftp_client.put(os.path.join(path,f), os.path.join(dest_path,f))
 			
 			sftp_client.close()
 			transport.close()
