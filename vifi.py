@@ -1101,14 +1101,12 @@ class vifi():
 				traceback.print_exc()
 	
 	def sftpTransfer(self,user_sftp_conf:dict,data_path:str,\
-					dest_path:str,flog:TextIOWrapper=None)->bool:
+					flog:TextIOWrapper=None)->bool:
 		''' Transfer input file to specified SFTP server
 		@param user_sftp_conf: User configurations related to SFTP Server
 		@type user_sftp_conf: dict  
 		@param data_path: Path of files to be transfered
 		@type data_path: str
-		@param dest_path: The destination path on the SFTP Server to store the files. The path DOES NOT include the file names
-		@type dest_path: str 
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		@return: True if file(s) transferred correctly
@@ -1123,6 +1121,7 @@ class vifi():
 			port=user_sftp_conf['port']
 			username=user_sftp_conf['username']
 			password=user_sftp_conf['password']
+			dest_path=user_sftp_conf['dest_path']
 			
 			# needed to add host to trusted hosts file
 			ssh_client = paramiko.SSHClient()

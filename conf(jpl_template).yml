@@ -16,6 +16,7 @@ fin_dest: # Final destination to transfer final results
   port: 22
   username: 'nifisftp'
   password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
+  dest_path: '/home/nifisftp/stat_analysis' #The destination path on the SFTP Server to store the files. The path DOES NOT include the file names
  nifi:                        # This section for NIFI transfer of specified results
   transfer: False 
   archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
@@ -75,6 +76,7 @@ services:                    # Group of required services for current request. T
     port: 22
     username: 'nifisftp'
     password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
+    dest_path: '/home/nifisftp/stat_analysis' #The destination path on the SFTP Server to store the files. The path DOES NOT include the file names
     results:                  # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
     - 'grad.out'
     - 'nll.out'
@@ -145,6 +147,7 @@ services:                    # Group of required services for current request. T
     port: 22
     username: 'nifisftp'
     password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
+    dest_path: '/home/nifisftp/stat_analysis' #The destination path on the SFTP Server to store the files. The path DOES NOT include the file names
     results:                  # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
     - 'grad.out'
     - 'nll.out'
