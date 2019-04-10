@@ -841,32 +841,33 @@ class vifi():
 			# Lower case the condition string
 			cond=transfer_conf['condition'].lower()
 			
+			# Split the condition string to a list of conditions
+			cond=cond.strip().split()
+			
 			# Determine if it is required to transfer results (in current iteration)
-			cond=cond.replace('all','True')						# If True, then transfer any results for each iteration
-			print('all: '+cond+"\n")
-			cond=cond.replace('never','False')					# If True, then never transfer any results for any iteration
-			print('never: '+cond+"\n")
+			cond=['True' if x=='all' else x for x in cond]	# If True, then transfer any results for each iteration
+
+			cond=['False' if x=='never' else x for x in cond]	# If True, then never transfer any results for any iteration
+
 			if servs[ser]['cur_iter']==servs[ser]['max_rep']:	# If True, then transfer results only if it is already last iteration for current service
-				cond=cond.replace('last_iteration','True')
-				print('last_iteration True: '+cond+"\n")
+				cond=['True' if x=='last_iteration' else x for x in cond]
 			else:
-				cond=cond.replace('last_iteration','False')
-				print('last_iteration False: '+cond+"\n")
+				cond=['False' if x=='last_iteration' else x for x in cond]
 			
 			if servs[ser]['cur_iter']<servs[ser]['max_rep']:	# If True, then transfer results of current service iteration only if it not the last iteration
-				cond=cond.replace('all_but_last_iteration','True')
-				print('all_but_last_iteration True: '+cond+"\n")
+				cond=['True' if x=='all_but_last_iteration' else x for x in cond]
 			else:
-				cond=cond.replace('all_but_last_iteration','False')
-				print('all_but_last_iteration False: '+cond+"\n")
+				cond=['False' if x=='all_but_last_iteration' else x for x in cond]
 			
 			if os.path.isfile('stop.iterating'):				# If True, then transfer results of current service iteration only if the service stops iterations (i.e., stop.iterating file exists)
-				cond=cond.replace('stop_iteration','True')
-				print('stop_iterating True: '+cond+"\n")
+				cond=['True' if x=='stop_iteration' else x for x in cond]
 			else:
-				cond=cond.replace('stop_iteration','False')
-				print('stop_iterating False: '+cond+"\n")
-				
+				cond=['False' if x=='stop_iteration' else x for x in cond]
+			
+			# Re-group the transfer condition string
+			cond=' '.join(cond)
+			
+			# Evaluate the transfer condition string
 			return eval(cond)
 		
 		except:
