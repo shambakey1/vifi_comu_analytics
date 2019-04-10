@@ -843,23 +843,29 @@ class vifi():
 			
 			# Determine if it is required to transfer results (in current iteration)
 			cond=cond.replace('all','True')						# If True, then transfer any results for each iteration
-			
+			print('all: '+cond+"\n")
 			cond=cond.replace('never','False')					# If True, then never transfer any results for any iteration
-			
+			print('never: '+cond+"\n")
 			if servs[ser]['cur_iter']==servs[ser]['max_rep']:	# If True, then transfer results only if it is already last iteration for current service
 				cond=cond.replace('last_iteration','True')
+				print('last_iteration True: '+cond+"\n")
 			else:
 				cond=cond.replace('last_iteration','False')
+				print('last_iteration False: '+cond+"\n")
 			
 			if servs[ser]['cur_iter']<servs[ser]['max_rep']:	# If True, then transfer results of current service iteration only if it not the last iteration
 				cond=cond.replace('all_but_last_iteration','True')
+				print('all_but_last_iteration True: '+cond+"\n")
 			else:
 				cond=cond.replace('all_but_last_iteration','False')
+				print('all_but_last_iteration False: '+cond+"\n")
 			
 			if os.path.isfile('stop.iterating'):				# If True, then transfer results of current service iteration only if the service stops iterations (i.e., stop.iterating file exists)
 				cond=cond.replace('stop_iteration','True')
+				print('stop_iterating True: '+cond+"\n")
 			else:
 				cond=cond.replace('stop_iteration','False')
+				print('stop_iterating False: '+cond+"\n")
 				
 			return eval(cond)
 		
@@ -1950,7 +1956,7 @@ class vifi():
 												
 										# If SFTP is enabled, then transfer required results using SFTP 
 										if self.checkTransfer(conf_in['services'][ser]['sftp']['transfer'],servs,ser,flog):
-											res_sftp=self.sftpTransfer(user_nifi_conf=conf_in['services'][ser]['sftp'], \
+											res_sftp=self.sftpTransfer(user_sftp_conf=conf_in['services'][ser]['sftp'], \
 															data_path=os.path.join(script_processed,req_res_path_per_request))
 											if res_sftp:
 												# sftp transfer succeeded 
