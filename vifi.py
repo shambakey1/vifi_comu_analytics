@@ -1311,7 +1311,7 @@ class vifi():
 						
 						# If a directory exists in the 'finished' with the same name, then move it to working directory. Then extract the compressed file to update the contents of the retrieved directory
 						if os.path.exists(os.path.join(script_path_out,req_name)):
-							shutil.move(os.path.join(script_path_out,req), os.path.join(comp_path,req_name))
+							shutil.move(os.path.join(script_path_out,req_name), comp_path)
 						
 						# Now, extract the compressed request
 						with ZipFile(os.path.join(comp_path,req)) as f:
