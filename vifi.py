@@ -1293,29 +1293,36 @@ class vifi():
 				# Determine path to compressed requests under specified set_i
 				comp_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
 									conf['domains']['script_path_in']['name'])
+				print('comp_path: '+str(comp_path)+'\n')
 				
 				# List all requests under current set_i
 				reqs=os.listdir(comp_path)
+				print('reqs: '+str(reqs)+'\n')
 				
 				# Unpack compressed files only, then remove the compressed file after extraction
 				for req in reqs:
 					# Unpack file according to file extension
 					if self.checkCompressed(req):
+						print('Found compressed request: '+str(req)+'\n')
 						
 						# Get the base request name without additions
 						req_name=self.getReqNameFromPath(req)
+						print('Compresed request name: '+str(req_name)+'\n')
 						
 						# Get the path to finished requests
 						script_path_out=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
 										conf['domains']['script_path_out']['name'])
+						print('script path out: '+str(script_path_out)+'\n')
 						
 						# If a directory exists in the 'finished' with the same name, then move it to working directory. Then extract the compressed file to update the contents of the retrieved directory
 						if os.path.exists(os.path.join(script_path_out,req_name)):
-							shutil.move(os.path.join(script_path_out,req_name), comp_path)
+							shutil.move(os.path.join(script_path_out,req_name), os.path.join(comp_path,req_name))
+							print('Moved request from '+str(os.path.join(script_path_out,req_name))+' to '+str(os.path.join(comp_path,req_name))+'\n')
 						
 						# Now, extract the compressed request
 						with ZipFile(os.path.join(comp_path,req)) as f:
 							f.extractall(comp_path)
+							print('Extract compressed request to '+str(comp_path)+'\n')
 					
 						# Remove compressed file after extraction
 						os.remove(os.path.join(comp_path,req))
