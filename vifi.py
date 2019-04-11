@@ -1068,41 +1068,28 @@ class vifi():
 		
 		try:
 			s3 = boto3.resource('s3')
-			print('s3: '+str(user_s3_conf)+'\n')
-			print('data path: '+data_path+'\n')
 			# If results are specified in the s3 section, then upload specified results to the s3 bucket
 			if 'results' in user_s3_conf and user_s3_conf['results']:
-				print('Found results\n')
 				for res_item in user_s3_conf['results']:
 					res=os.path.join(data_path,res_item)
-					print('res: '+str(res)+'\n')
 					# If result is file, then upload the file
 					if os.path.isfile(res):
-						print('result is file\n')
 						data = open(res, 'rb')
 						key_obj=user_s3_conf['path']+"/"+res_item
-						print('key obj: '+str(key_obj)+', bucket: '+str(user_s3_conf['bucket'])+'\n')
-						s3resp=s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
-						print('s3 response: '+str(s3resp)+'\n')
+						s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 					elif os.path.isdir(res):
-						print('result is directory\n')
 						for path,dir,f_res in os.walk(res):
 							for f in f_res:
 								data = open(os.path.join(path,f), 'rb')
 								key_obj=user_s3_conf['path']+"/"+f
-								print('key obj: '+str(key_obj)+', bucket: '+str(user_s3_conf['bucket'])+'\n')
-								s3resp=s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
-								print('s3 response: '+str(s3resp)+'\n')
+								s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 			# If no results are specified for the s3 section, then upload the whole results section
 			else:
-				print('Found NO results\n')
 				for path,dir,f_res in os.walk(data_path):
 					for f in f_res:
 						data = open(os.path.join(path,f), 'rb')
 						key_obj=user_s3_conf['path']+"/"+f
-						print('key obj: '+str(key_obj)+', bucket: '+str(user_s3_conf['bucket'])+'\n')
-						s3resp=s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
-						print('s3 response: '+str(s3resp)+'\n')
+						s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 		except:
 			result='Error: "s3Transfer" function has error(vifi_server): '
 			if flog:
@@ -1121,6 +1108,8 @@ class vifi():
 		@type data_path: str
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
+		@return: True if transfer succeeds. False otherwise
+		@rtype: bool
 		'''			
 
 		try:
@@ -1161,6 +1150,7 @@ class vifi():
 			
 			sftp_client.close()
 			transport.close()
+			return True
 		
 		except:
 			result='Error: "sftpTransfer" function has error(vifi_server): '
@@ -1170,9 +1160,7 @@ class vifi():
 			else:
 				print(result)
 				traceback.print_exc()
-				
-		finally:
-			return final_res
+			return False
 				
 		
 	def changePermissionsRecursive(self,path:str, mode=0o777,flog:TextIOWrapper=None)->None:
