@@ -1080,7 +1080,7 @@ class vifi():
 					if os.path.isfile(res):
 						print('result is file\n')
 						data = open(res, 'rb')
-						key_obj=user_s3_conf['path']+"/"+res
+						key_obj=user_s3_conf['path']+"/"+res_item
 						print('key obj: '+str(key_obj)+', bucket: '+str(user_s3_conf['bucket'])+'\n')
 						s3resp=s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)		# In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
 						print('s3 response: '+str(s3resp)+'\n')
