@@ -1069,6 +1069,8 @@ class vifi():
 		try:
 			s3 = boto3.resource('s3')
 			
+			print('s3 conf: '+str(user_s3_conf)+'\n')
+			print('data_path: '+str(data_path)+'\n')
 			# If results are specified in the s3 section, then upload specified results to the s3 bucket
 			if 'results' in user_s3_conf and user_s3_conf['results']:
 				for res_item in user_s3_conf['results']:
