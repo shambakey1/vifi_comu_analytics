@@ -1317,6 +1317,8 @@ class vifi():
 						# If a directory exists in the 'finished' with the same name, then move it to working directory. Then extract the compressed file to update the contents of the retrieved directory
 						if os.path.exists(os.path.join(script_path_out,req_name)):
 							shutil.move(os.path.join(script_path_out,req_name), os.path.join(comp_path,req_name))
+							# Increment the maximum iteration number for all services in the returned request, as the returned request is going to run once more
+							self.incMaxIterAllServicesinRequest(os.path.join(comp_path,req_name))
 							print('Moved request from '+str(os.path.join(script_path_out,req_name))+' to '+str(os.path.join(comp_path,req_name))+'\n')
 						
 						# Now, extract the compressed request
@@ -1673,6 +1675,38 @@ class vifi():
 				traceback.print_exc()
 				
 			return None
+	
+	def incMaxIterAllServicesinRequest(self,req_path:str=None,flog:TextIOWrapper=None)->None:
+		''' Increment maximum iterations number for all services in the configuration file of the input request folder
+		@param req_path: Request folder containing configuration file
+		@type req_path: str
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object)
+		'''
+		
+		try:
+			
+			# Load the configuration file of request
+			if req_path and os.path.isdir(req_path):
+				with open(os.path.join(req_path,'conf.yml'),'r') as f:
+					conf=yaml.load(f)
+				
+				# Increment the maximum iteration of all services in the specified request
+				for ser in conf['services']:
+					conf['services'][ser]['iterative']['max_rep']+=1
+				
+				# Store back the modified configurations in the specified request
+				with open(os.path.join(req_path,'conf.yml'),'w') as f: 	
+					yaml.dump(conf,f,default_flow_style=False)
+					
+		except:
+			result='Error: "incMaxIterAllServicesinRequest" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()			
 			
 	def vifiRun(self,sets:List[str]=None,request_in:List[str]=None,conf:dict=None)->None:
 		''' VIFI request analysis and processing procedure for list of sets (i.e., (sub)workflows). The default 
