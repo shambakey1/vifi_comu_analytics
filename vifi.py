@@ -1293,38 +1293,31 @@ class vifi():
 				# Determine path to compressed requests under specified set_i
 				comp_path=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
 									conf['domains']['script_path_in']['name'])
-				print('comp_path: '+str(comp_path)+'\n')
 				
 				# List all requests under current set_i
 				reqs=os.listdir(comp_path)
-				print('reqs: '+str(reqs)+'\n')
 				
 				# Unpack compressed files only, then remove the compressed file after extraction
 				for req in reqs:
 					# Unpack file according to file extension
 					if self.checkCompressed(req):
-						print('Found compressed request: '+str(req)+'\n')
 						
 						# Get the base request name without additions
 						req_name=self.getReqNameFromPath(req)
-						print('Compresed request name: '+str(req_name)+'\n')
 						
 						# Get the path to finished requests
 						script_path_out=os.path.join(conf['domains']['root_script_path']['name'],conf['domains']['sets'][dset]['name'],\
 										conf['domains']['script_path_out']['name'])
-						print('script path out: '+str(script_path_out)+'\n')
 						
 						# If a directory exists in the 'finished' with the same name, then move it to working directory. Then extract the compressed file to update the contents of the retrieved directory
 						if os.path.exists(os.path.join(script_path_out,req_name)):
 							shutil.move(os.path.join(script_path_out,req_name), os.path.join(comp_path,req_name))
 							# Increment the maximum iteration number for all services in the returned request, as the returned request is going to run once more
 							self.incMaxIterAllServicesinRequest(os.path.join(comp_path,req_name))
-							print('Moved request from '+str(os.path.join(script_path_out,req_name))+' to '+str(os.path.join(comp_path,req_name))+'\n')
 						
 						# Now, extract the compressed request
 						with ZipFile(os.path.join(comp_path,req)) as f:
 							f.extractall(comp_path)
-							print('Extract compressed request to '+str(comp_path)+'\n')
 					
 						# Remove compressed file after extraction
 						os.remove(os.path.join(comp_path,req))
@@ -1970,6 +1963,7 @@ class vifi():
 										
 										# If NIFI(s) is(are) enabled, then transfer required results using NIFI
 										if 'nifi' in conf_in['services'][ser]:
+											self.req_list[request]['services'][service_name]['nifi']=[]
 											for nifi_sec in conf_in['services'][ser]['nifi']:
 												if self.checkTransfer(nifi_sec['transfer'],servs,ser,flog):
 													res_name=self.nifiTransfer(user_nifi_conf=nifi_sec, \
@@ -1980,8 +1974,7 @@ class vifi():
 														# NIFI transfer succeeded 
 														mes_time=time.time()
 														flog.write("Intermediate results "+res_name+" transfer by NIFI succeeded at "+repr(mes_time)+"\n")
-														self.req_list[request]['services'][service_name]['nifi']={'sent':mes_time,'res_file':os.path.basename(res_name)}
-														
+														self.req_list[request]['services'][service_name]['nifi'].append({'sent':mes_time,'res_file':os.path.basename(res_name),'destination':{'ip':nifi_sec['target_uri'],'set':nifi_sec['target_remote_input_port']}})
 														# Update central middleware log if required
 														mes={'request':request,'service':service_name,'nifi':{'sent':mes_time,'res_file':os.path.basename(res_name)}}
 														self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
