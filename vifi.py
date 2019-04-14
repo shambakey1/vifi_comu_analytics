@@ -2003,7 +2003,10 @@ class vifi():
 																
 									else:
 										# Service failed
+										tmp_ser_stat=False
 										break	
+									
+									print('tmp_ser_stat: '+str(tmp_ser_stat))
 									
 									# Update service iteration number
 									ser_it+=1
@@ -2021,6 +2024,7 @@ class vifi():
 									
 								# Update request status according to current service status, and abort request if any service fails
 								final_req_stat=final_req_stat and tmp_ser_stat
+								print('final_req_stat: '+str(final_req_stat))
 								if not final_req_stat:
 									break
 							
