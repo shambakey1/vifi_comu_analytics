@@ -1833,7 +1833,7 @@ class vifi():
 								
 								# Check if the service still needs to iterate
 								while self.serIterate(iter_conf=conf_in['services'][ser]['iterative'],ser_it_no=ser_it,stop_itarting_path=os.path.join(script_path_in,request,"stop.iterating")):
-									
+									print('At new iteration, iteration: '+str(servs[ser]['cur_iter'])+', stop: '+str(os.path.isfile('stop.iterating')))
 									# Check required service name uniqueness (Just a precaution, as the request name- which should also be the service name- must be unique when the user made the request)
 									service_name=self.checkSerName(ser=ser,iter_no=ser_it,client=client)
 									if not service_name:
@@ -1911,6 +1911,7 @@ class vifi():
 									# Check completeness of created service to transfer results (if required) and to end service
 									if self.checkServiceComplete(client,service_name,int(task_no),int(ser_ttl)):
 										# Log completeness time
+										print('after service complete, iteration: '+str(servs[ser]['cur_iter'])+', stop: '+str(os.path.isfile('stop.iterating')))
 										ser_end_time=time.time()
 										self.req_list[request]['services'][service_name]['end']=ser_end_time
 										self.req_list[request]['services'][service_name]['status']='succeed'
