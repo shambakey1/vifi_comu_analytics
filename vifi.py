@@ -866,7 +866,7 @@ class vifi():
 			
 			# Re-group the transfer condition string
 			cond=' '.join(cond)
-			
+			print('cond: '+str(cond)+': '+str(eval(cond)))
 			# Evaluate the transfer condition string
 			return eval(cond)
 		
