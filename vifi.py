@@ -822,7 +822,7 @@ class vifi():
 				print(result)
 				traceback.print_exc()
 	
-	def checkTransfer(self,transfer_conf:dict,servs:dict,ser:str,flog:TextIOWrapper=None)->bool:
+	def checkTransfer(self,transfer_conf:dict,servs:dict,ser:str,cond_path:str='',flog:TextIOWrapper=None)->bool:
 		''' Check if it is required to make a transfer for current service iteration.
 		@attention: Current service iteration number is 1-based, meaning that after a service finishes, it should have incremented iteration number by 1. Thus, if the service iteration number, this means the service has accomplished 1 iteration. This information is important for comparsion between current service iteration number and the service maximum repetitions.
 		@param transfer_conf: The transfer configuration. It is a common structure between different transfer sections (e.g., s3, nifi)
@@ -831,6 +831,8 @@ class vifi():
 		@type servs: dict 
 		@param ser: Current service name
 		@type ser: str  
+		@param cond_path: Directory path that contains conditional files (i.e., files that, if exist, mean that it is ok to transfer results)
+		@type cond_path: str 
 		@type flog: TextIOWrapper (file object)
 		@return: True if transfer is required. False otherwise
 		@rtype: bool 
@@ -859,7 +861,7 @@ class vifi():
 			else:
 				cond=['False' if x=='all_but_last_iteration' else x for x in cond]
 			
-			if os.path.isfile('stop.iterating'):				# If True, then transfer results of current service iteration only if the service stops iterations (i.e., stop.iterating file exists)
+			if os.path.isfile(os.path.join(cond_path,'stop.iterating')):				# If True, then transfer results of current service iteration only if the service stops iterations (i.e., stop.iterating file exists)
 				cond=['True' if x=='stop_iteration' else x for x in cond]
 			else:
 				cond=['False' if x=='stop_iteration' else x for x in cond]
@@ -1951,7 +1953,7 @@ class vifi():
 										res_uuid=str(uuid.uuid1())
 											
 										# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
-										if self.checkTransfer(conf_in['services'][ser]['s3']['transfer'],servs,ser,flog) and conf_in['services'][ser]['s3']['bucket']:	# s3_transfer is True and s3_buc has some value
+										if self.checkTransfer(conf_in['services'][ser]['s3']['transfer'],servs,ser,os.path.join(script_path_in,request,"stop.iterating"),flog) and conf_in['services'][ser]['s3']['bucket']:	# s3_transfer is True and s3_buc has some value
 											self.s3Transfer(conf_in['services'][ser]['s3'], \
 														os.path.join(script_processed,req_res_path_per_request))
 											mes_time=time.time()
@@ -1966,7 +1968,7 @@ class vifi():
 										if 'nifi' in conf_in['services'][ser]:
 											self.req_list[request]['services'][service_name]['nifi']=[]
 											for nifi_sec in conf_in['services'][ser]['nifi']:
-												if self.checkTransfer(nifi_sec['transfer'],servs,ser,flog):
+												if self.checkTransfer(nifi_sec['transfer'],servs,ser,os.path.join(script_path_in,request,"stop.iterating"),flog):
 													res_name=self.nifiTransfer(user_nifi_conf=nifi_sec, \
 																	data_path=os.path.join(script_processed,req_res_path_per_request), \
 																	res_id=res_uuid, pg_name=dset, \
@@ -1985,7 +1987,7 @@ class vifi():
 														# TODO: should the user request be terminated? or just continue with future service(vifi_server)
 												
 										# If SFTP is enabled, then transfer required results using SFTP 
-										if self.checkTransfer(conf_in['services'][ser]['sftp']['transfer'],servs,ser,flog):
+										if self.checkTransfer(conf_in['services'][ser]['sftp']['transfer'],servs,ser,os.path.join(script_path_in,request,"stop.iterating"),flog):
 											res_sftp=self.sftpTransfer(user_sftp_conf=conf_in['services'][ser]['sftp'], \
 															data_path=os.path.join(script_processed,req_res_path_per_request))
 											if res_sftp:
