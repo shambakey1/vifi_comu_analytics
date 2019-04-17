@@ -1953,7 +1953,7 @@ class vifi():
 										res_uuid=str(uuid.uuid1())
 											
 										# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
-										if self.checkTransfer(conf_in['services'][ser]['s3']['transfer'],servs,ser,os.path.join(script_path_in,request,"stop.iterating"),flog) and conf_in['services'][ser]['s3']['bucket']:	# s3_transfer is True and s3_buc has some value
+										if self.checkTransfer(conf_in['services'][ser]['s3']['transfer'],servs,ser,os.path.join(script_path_in,request),flog) and conf_in['services'][ser]['s3']['bucket']:	# s3_transfer is True and s3_buc has some value
 											self.s3Transfer(conf_in['services'][ser]['s3'], \
 														os.path.join(script_processed,req_res_path_per_request))
 											mes_time=time.time()
@@ -1968,7 +1968,7 @@ class vifi():
 										if 'nifi' in conf_in['services'][ser]:
 											self.req_list[request]['services'][service_name]['nifi']=[]
 											for nifi_sec in conf_in['services'][ser]['nifi']:
-												if self.checkTransfer(nifi_sec['transfer'],servs,ser,os.path.join(script_path_in,request,"stop.iterating"),flog):
+												if self.checkTransfer(nifi_sec['transfer'],servs,ser,os.path.join(script_path_in,request),flog):
 													res_name=self.nifiTransfer(user_nifi_conf=nifi_sec, \
 																	data_path=os.path.join(script_processed,req_res_path_per_request), \
 																	res_id=res_uuid, pg_name=dset, \
@@ -1987,7 +1987,7 @@ class vifi():
 														# TODO: should the user request be terminated? or just continue with future service(vifi_server)
 												
 										# If SFTP is enabled, then transfer required results using SFTP 
-										if self.checkTransfer(conf_in['services'][ser]['sftp']['transfer'],servs,ser,os.path.join(script_path_in,request,"stop.iterating"),flog):
+										if self.checkTransfer(conf_in['services'][ser]['sftp']['transfer'],servs,ser,os.path.join(script_path_in,request),flog):
 											res_sftp=self.sftpTransfer(user_sftp_conf=conf_in['services'][ser]['sftp'], \
 															data_path=os.path.join(script_processed,req_res_path_per_request))
 											if res_sftp:
