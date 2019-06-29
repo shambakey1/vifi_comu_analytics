@@ -1928,7 +1928,11 @@ class vifi():
 											for f_res in conf_in['services'][ser]['results']:
 												# Move required final results (Just in case they are needed in the future)
 												if os.path.exists(os.path.join(script_processed,f_res)):
-													shutil.move(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request,f_res))
+													# Check if the required result file/folder should be copied or moved
+													if (f_res.lower()=='stop.iterating'.lower()):
+														shutil.copy(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request,f_res))
+													else:
+														shutil.move(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request,f_res))
 												else:
 													flog.write("Failed to locally move result "+os.path.join(script_processed,f_res)+" at "+repr(time.time())+"\n")
 										
