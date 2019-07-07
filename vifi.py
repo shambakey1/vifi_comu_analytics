@@ -1926,11 +1926,11 @@ class vifi():
 										# Move required results, if any, to specified destinations
 										if conf_in['services'][ser]['results']:
 											for f_res in conf_in['services'][ser]['results']:
-												# Move required final results (Just in case they are needed in the future)
+												# Move required final results (Just in case they are needed in the future). All moved results include any results that will be moved to any destination in the future, even if different results are to be transferred to different destinations
 												if os.path.exists(os.path.join(script_processed,f_res)):
-													# Check if the required result file/folder should be copied or moved
-													if (f_res.lower()=='stop.iterating'.lower()):
-														shutil.copy(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request,f_res))
+													# Check if the required result file/folder should be copied or moved (e.g., files like 'stop.iterating' should exist both under the user directory, and the 'results' sub-folder under the current user directory. Thus, 'stop.iterating' file should be copied, not moved, to the 'results' sub-folder)
+													if (f_res.lower()=='stop.iterating'.lower()) and os.path.isfile(os.path.join(script_processed,'stop.iterating')):
+														shutil.copy(os.path.join(script_processed,'stop.iterating'), os.path.join(script_processed,req_res_path_per_request,f_res))
 													else:
 														shutil.move(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request,f_res))
 												else:
