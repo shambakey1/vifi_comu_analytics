@@ -1041,7 +1041,7 @@ class vifi():
 			if os.path.isfile(os.path.join(data_path,res_name)):
 				os.remove(os.path.join(data_path,res_name))
 			
-			# Retun (uniquely identified) compressed result file name, without path, to indicate transfer success
+			# Return (uniquely identified) compressed result file name, without path, to indicate transfer success
 			return os.path.basename(res_name)
 			
 		except:
@@ -1972,6 +1972,9 @@ class vifi():
 										if 'nifi' in conf_in['services'][ser]:
 											self.req_list[request]['services'][service_name]['nifi']=[]
 											for nifi_sec in conf_in['services'][ser]['nifi']:
+												# DEBUG if stop.iterating exist
+												if os.path.isfile(os.path.join(script_processed,req_res_path_per_request,'stop.iterating')):
+													print('stop.iterating exists for '+str(nifi_sec['target_uri']))
 												if self.checkTransfer(nifi_sec['transfer'],servs,ser,os.path.join(script_path_in,request),flog):
 													res_name=self.nifiTransfer(user_nifi_conf=nifi_sec, \
 																	data_path=os.path.join(script_processed,req_res_path_per_request), \
