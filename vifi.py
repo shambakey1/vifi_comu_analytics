@@ -1922,7 +1922,13 @@ class vifi():
 										# Update central middleware log if required
 										mes={'request':request,'service':service_name,'end':ser_end_time,'status':'succeed'}
 										self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
-											
+										
+										# DEBUG: Check the stop.iterating file exists
+										if os.path.isfile('/home/ubuntu/requests/ssdf/in/ssdf_user/stop.iterating'):
+											print('Found stop.iterating at '+str(os.path.join(script_processed,'stop.iterating'))+'\n')	
+										if os.path.isfile('/home/ubuntu/requests/ssdf/in/ssdf_user/results/stop.iterating'):
+											print('Found stop.iterating at '+str(os.path.join(script_processed,req_res_path_per_request,'stop.iterating'))+'\n')	
+										
 										# Move required results, if any, to specified destinations
 										if conf_in['services'][ser]['results']:
 											for f_res in conf_in['services'][ser]['results']:
