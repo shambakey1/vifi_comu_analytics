@@ -883,6 +883,56 @@ class vifi():
 				traceback.print_exc()
 			
 
+	def actOnResults(self,conf:dict,res_cur_dir:str,res_dest_dir:str,flog:TextIOWrapper=None)->None:
+		''' Act upon intermediate results after current service (iteration) finishes, and before the next 
+		service (iteration) starts. For each file, actions are executed in the given sequence. Current actions include:
+		- copy: Copies specified file from current results directory (e.g., working directory) to destination results directory. The copied file is kept in current results directory because it may be needed by future services (e.g., stop.iterating file)
+		- move: Moves specified file from current results directory (e.g., working directory) to destination results directory. The copied file should be moved because the next service (iteration) may depend on an updated version of this file. Otherwise, the next service (iteration) may start running using the outdated version. Move is the default action
+		@param conf: Results configuration as specified in the user YAML configuration file
+		@type conf: dict
+		@param res_cur_dir: Current directory results (usually the working directory of the user's request)
+		@type res_cur_dir: str
+		@param res_dest_dir: Target directory for results (usually a sub-folder named 'results' under the working directory of the user's request folder)
+		@type res_dest_dir: str
+		@type flog: TextIOWrapper (file object)
+		@return: True if transfer is required. False otherwise
+		'''
+		
+		try:
+			
+			for f_res in conf:
+				# Check if the result is file or directory
+				if os.path.isfile(os.path.join(res_cur_dir,f_res)):	# Result is file
+					# Perform required sequence of actions on result files
+					for act in conf[f_res]:
+						if act['action'].lower=='copy':
+							shutil.copy(os.path.join(res_cur_dir,f_res), os.path.join(res_cur_dir,res_dest_dir,f_res))
+						else:
+							shutil.move(os.path.join(res_cur_dir,f_res), os.path.join(res_cur_dir,res_dest_dir,f_res))
+				elif os.path.isdir(os.path.join(res_cur_dir,f_res)):	# Result is a directory
+					# Remove the directory from the destination path if already exist there
+					if os.path.isdir(os.path.join(res_cur_dir,res_dest_dir,f_res)):
+						shutil.rmtree(os.path.join(res_cur_dir,res_dest_dir,f_res))
+					# Perform required set of actions on result directories
+					for act in conf[f_res]:
+						if act['action'].lower=='copy':	
+							shutil.copytree(os.path.join(res_cur_dir,f_res), os.path.join(res_cur_dir,res_dest_dir,f_res))
+						else:
+							shutil.move(os.path.join(res_cur_dir,f_res), os.path.join(res_cur_dir,res_dest_dir,f_res))	
+				else:
+					flog.write("Failed to locally move result "+os.path.join(res_cur_dir,f_res)+" at "+repr(time.time())+"\n")
+		
+		except:
+			
+			result='Error: "actOnResults" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
+		
+	
 	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,res_id:str='',pg_name:str=None,tr_res_temp_name:str='tr_res_temp', \
 					flog:TextIOWrapper=None)->str:
 		''' Transfer required results as a compressed zip file using NIFI
@@ -1929,18 +1979,9 @@ class vifi():
 										if os.path.isfile('/home/ubuntu/requests/ssdf/in/ssdf_user/results/stop.iterating'):
 											print('Found stop.iterating at '+str(os.path.join(script_processed,req_res_path_per_request,'stop.iterating'))+'\n')	
 										
-										# Move required results, if any, to specified destinations
+										# Move/Copy (or other required sequence of actions) required results, if any, to specified destinations
 										if conf_in['services'][ser]['results']:
-											for f_res in conf_in['services'][ser]['results']:
-												# Move required final results (Just in case they are needed in the future). All moved results include any results that will be moved to any destination in the future, even if different results are to be transferred to different destinations
-												if os.path.exists(os.path.join(script_processed,f_res)):
-													# Check if the required result file/folder should be copied or moved (e.g., files like 'stop.iterating' should exist both under the user directory, and the 'results' sub-folder under the current user directory. Thus, 'stop.iterating' file should be copied, not moved, to the 'results' sub-folder)
-													if (f_res.lower()=='stop.iterating'.lower()):
-														shutil.copy(os.path.join(script_processed,'stop.iterating'), os.path.join(script_processed,req_res_path_per_request,f_res))
-													else:
-														shutil.move(os.path.join(script_processed,f_res), os.path.join(script_processed,req_res_path_per_request,f_res))
-												else:
-													flog.write("Failed to locally move result "+os.path.join(script_processed,f_res)+" at "+repr(time.time())+"\n")
+											self.actOnResults(conf=conf_in['services'][ser]['results'],res_cur_dir=script_processed,res_dest_dir=os.path.join(script_processed,req_res_path_per_request),flog)
 										
 										# Update service status, request status, and request configuration file
 										tmp_ser_stat=True
@@ -1979,7 +2020,7 @@ class vifi():
 											self.req_list[request]['services'][service_name]['nifi']=[]
 											for nifi_sec in conf_in['services'][ser]['nifi']:
 												# DEBUG if stop.iterating exist
-												if os.path.isfile(os.path.join(script_processed,req_res_path_per_request,'stop.iterating')):
+												if os.path.isfile(os.path.join(script_processed,'stop.iterating')):
 													print('stop.iterating exists for '+str(nifi_sec['target_uri']))
 												if self.checkTransfer(nifi_sec['transfer'],servs,ser,os.path.join(script_path_in,request),flog):
 													res_name=self.nifiTransfer(user_nifi_conf=nifi_sec, \
