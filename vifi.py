@@ -833,6 +833,7 @@ class vifi():
 		@type ser: str  
 		@param cond_path: Directory path that contains conditional files (i.e., files that, if exist, mean that it is ok to transfer results)
 		@type cond_path: str 
+		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		@return: True if transfer is required. False otherwise
 		@rtype: bool 
@@ -894,6 +895,7 @@ class vifi():
 		@type res_cur_dir: str
 		@param res_dest_dir: Target directory for results (usually a sub-folder named 'results' under the working directory of the user's request folder)
 		@type res_dest_dir: str
+		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		@return: True if transfer is required. False otherwise
 		'''
@@ -933,6 +935,35 @@ class vifi():
 				traceback.print_exc()
 		
 	
+	def toRemove(self,conf:dict,data_path:str,flog:TextIOWrapper=None)->None:
+		''' Remove specified set of files/directories under the specified path after current service (iteration) 
+		finishes, and before the next service (iteration) begins. The specified files/folder represent dependencies 
+		for the current service (iteration), and they should be updated before the next service (iteration) starts. 
+		Otherwise, the next service (iteration) will run with outdated data.
+		@param conf: User configuration containing set of files/folder to be removed 
+		@type conf: dict
+		@param data_path: Root path of files/folder to be removed
+		@type data_path: str 
+		@param flog: Log file to record raised events
+		@type flog: TextIOWrapper (file object)  
+		'''
+		
+		try:
+			for f in conf:
+				if os.path.isfile(os.path.join(data_path,f)):	# To remove a file
+					os.remove(os.path.join(data_path,f))
+				elif os.path.isdir(os.path.join(data_path,f)):	# To remove a folder
+					shutil.rmtree(os.path.join(data_path,f))
+		except:
+			result='Error: "toRemove" function has error(vifi_server): '
+			if flog:
+				flog.write(result)
+				traceback.print_exc(file=flog)
+			else:
+				print(result)
+				traceback.print_exc()
+		
+		
 	def nifiTransfer(self,user_nifi_conf:dict,data_path:str,res_id:str='',pg_name:str=None,tr_res_temp_name:str='tr_res_temp', \
 					flog:TextIOWrapper=None)->str:
 		''' Transfer required results as a compressed zip file using NIFI
@@ -1981,7 +2012,7 @@ class vifi():
 										
 										# Move/Copy (or other required sequence of actions) required results, if any, to specified destinations
 										if conf_in['services'][ser]['results']:
-											self.actOnResults(conf=conf_in['services'][ser]['results'],res_cur_dir=script_processed,res_dest_dir=os.path.join(script_processed,req_res_path_per_request),flog)
+											self.actOnResults(conf=conf_in['services'][ser]['results'],res_cur_dir=script_processed,res_dest_dir=os.path.join(script_processed,req_res_path_per_request))
 										
 										# Update service status, request status, and request configuration file
 										tmp_ser_stat=True
@@ -2057,7 +2088,9 @@ class vifi():
 											else:
 												# sftp transfer failed
 												flog.write("Transfer to SFTP Server failed at  "+repr(time.time())+"\n")
-																
+								
+											# Remove list of files/directories that should be updated before the new service (iteration) starts. These files/directories are dependencies for the next service (iteration), and if they are not removed, then the new service (iteration) will start with the outdated data
+											self.toRemove(conf=conf_in['services'][ser]['toremove'],res_cur_dir=script_processed)				
 									else:
 										# Service failed
 										tmp_ser_stat=False
