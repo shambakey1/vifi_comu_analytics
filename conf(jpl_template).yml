@@ -58,7 +58,10 @@ services:                    # Group of required services for current request. T
   mnts:                      # List of user specified mounts (in the form source:target:options) to be used within the containerized application
   - cordex1.py:/usr/local/climate/RCMES/CORDEX/cordex1.py
   - nam_out:/data/output/CORDEX/analysis:rw
-  results: &results                  # List of result files of the service
+  results: &results                  # Set of result files/directories of the service
+  toremove:                 # List of files/directories to remove after current service (iteration) because a new updated version of the file/folder should be received before the new service (iteration) starts
+#  - a.out                   # File
+#  - b                       # Directory
   ser_check_thr: 300         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
     transfer: 
@@ -131,15 +134,21 @@ services:                    # Group of required services for current request. T
   mnts:                      # List of user specified mounts (in the form source:target:options) to be used within the containerized application
   - cordex2.py:/usr/local/climate/RCMES/CORDEX/cordex2.py
   - nam_out:/data/output/CORDEX/analysis:rw
-  results: &results                  # List of result files of the service
-  - nam_out
+  results: &results1                  # Set of result files/directories of the service
+  'nam_out':                 # Each result file/directory specifies a sequence of actions that should be done on this file/directory before the nexst service (iteration) starts. The default action is to move the file/directory to the 'results' subfolder under the current user request root folder
+  - action: move             # Default action
+  'stop.iterating':          # Special VIFI file that indicates that iteraion should stop. VIFI requires 'stop.iterating' file to exist under the user root request folder. Otherwise, VIFI will not be able to determine whether to stop iteration or not. Therefore, if it is required to transfer this file to other remove VIFI nodes (for other nodes to stop iteration), then 'stop.iterating' should be copied, not moved, to the 'results' folder under the current user root request folder
+  - action: copy
+  toremove:                 # List of files/directories to remove after current service (iteration) because a new updated version of the file/folder should be received before the new service (iteration) starts
+#  - a.out                   # File
+#  - b                       # Directory
   ser_check_thr: 3600         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
     transfer: 
      condition: 'last_iteration or stop_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one. Different conditions can be combined by different logical operands (e.g., and, or, not)
     bucket: uncc-vifi-bucket
     path: jpl_cordex
-    results: *results                 # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
+    results: *results1                 # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
   sftp:                        # This section for SFTP Server transfer of specified results
     transfer: 
      condition: 'last_iteration or stop_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one. Different conditions can be combined by different logical operands (e.g., and, or, not)
@@ -159,7 +168,7 @@ services:                    # Group of required services for current request. T
     archtype: 'zip'
     target_uri: 'a.b.c.d' # Target NIFI remote process group to transfer results file
     target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
-    results: *results
+    results: *results1
   - transfer: 
      condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
     archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
