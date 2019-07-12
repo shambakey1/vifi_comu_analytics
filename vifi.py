@@ -908,8 +908,10 @@ class vifi():
 					# Perform required sequence of actions on result files
 					for act in conf[f_res]:
 						if act['action'].lower=='copy':
+							print('DEBUG: actOnResult: copy file '+str(os.path.join(res_cur_dir,f_res))+' to '+str(os.path.join(res_cur_dir,res_dest_dir,f_res))+'\n')
 							shutil.copy(os.path.join(res_cur_dir,f_res), os.path.join(res_cur_dir,res_dest_dir,f_res))
 						else:
+							print('DEBUG: actOnResult: move file '+str(os.path.join(res_cur_dir,f_res))+' to '+str(os.path.join(res_cur_dir,res_dest_dir,f_res))+'\n')
 							shutil.move(os.path.join(res_cur_dir,f_res), os.path.join(res_cur_dir,res_dest_dir,f_res))
 				elif os.path.isdir(os.path.join(res_cur_dir,f_res)):	# Result is a directory
 					# Remove the directory from the destination path if already exist there
