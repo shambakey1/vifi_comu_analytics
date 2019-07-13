@@ -924,7 +924,8 @@ class vifi():
 						else:
 							shutil.move(os.path.join(res_cur_dir,f_res), os.path.join(res_cur_dir,res_dest_dir,f_res))	
 				else:
-					flog.write("Failed to locally move result "+os.path.join(res_cur_dir,f_res)+" at "+repr(time.time())+"\n")
+					if flog:
+						flog.write("Failed to locally move result "+os.path.join(res_cur_dir,f_res)+" at "+repr(time.time())+"\n")
 		
 		except:
 			
