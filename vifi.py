@@ -953,6 +953,7 @@ class vifi():
 		
 		try:
 			for f in conf:
+				print("DEBUG: remove result "+str(f)+" from path "+str(data_path)+"\n")
 				if os.path.isfile(os.path.join(data_path,f)):	# To remove a file
 					os.remove(os.path.join(data_path,f))
 				elif os.path.isdir(os.path.join(data_path,f)):	# To remove a folder
