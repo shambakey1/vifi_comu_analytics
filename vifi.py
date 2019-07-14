@@ -2020,7 +2020,7 @@ class vifi():
 										
 										# Remove list of files/directories (if exist) that should be updated before the new service (iteration) starts. These files/directories are dependencies for the next service (iteration), and if they are not removed, then the new service (iteration) will start with the outdated data
 										if conf_in['services'][ser]['toremove']:
-											self.toRemove(conf=conf_in['services'][ser]['toremove'],res_cur_dir=script_processed)
+											self.toRemove(conf=conf_in['services'][ser]['toremove'],data_path=script_processed)
 											
 										# Update service status, request status, and request configuration file
 										tmp_ser_stat=True
