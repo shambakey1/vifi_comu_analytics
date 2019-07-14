@@ -2017,6 +2017,10 @@ class vifi():
 										if conf_in['services'][ser]['results']:
 											self.actOnResults(conf=conf_in['services'][ser]['results'],res_cur_dir=script_processed,res_dest_dir=os.path.join(script_processed,req_res_path_per_request))
 										
+										# Remove list of files/directories (if exist) that should be updated before the new service (iteration) starts. These files/directories are dependencies for the next service (iteration), and if they are not removed, then the new service (iteration) will start with the outdated data
+										if conf_in['services'][ser]['toremove']:
+											self.toRemove(conf=conf_in['services'][ser]['toremove'],res_cur_dir=script_processed)
+											
 										# Update service status, request status, and request configuration file
 										tmp_ser_stat=True
 										servs[ser]['cur_iter']+=1
@@ -2092,9 +2096,7 @@ class vifi():
 												# sftp transfer failed
 												flog.write("Transfer to SFTP Server failed at  "+repr(time.time())+"\n")
 								
-										# Remove list of files/directories (if exist) that should be updated before the new service (iteration) starts. These files/directories are dependencies for the next service (iteration), and if they are not removed, then the new service (iteration) will start with the outdated data
-										if conf_in['services'][ser]['toremove']:
-											self.toRemove(conf=conf_in['services'][ser]['toremove'],res_cur_dir=script_processed)				
+														
 									else:
 										# Service failed
 										tmp_ser_stat=False
