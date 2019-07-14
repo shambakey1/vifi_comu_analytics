@@ -869,7 +869,7 @@ class vifi():
 			
 			# Re-group the transfer condition string
 			cond=' '.join(cond)
-			print('cond: '+str(cond)+': '+str(eval(cond)))
+			#print('DEBUG: cond: '+str(cond)+': '+str(eval(cond)))
 			# Evaluate the transfer condition string
 			return eval(cond)
 		
@@ -908,10 +908,10 @@ class vifi():
 					# Perform required sequence of actions on result files
 					for act in conf[f_res]:
 						if act['action'].lower()=='copy':
-							print('DEBUG: actOnResult: copy file '+str(os.path.join(res_cur_dir,f_res))+' to '+str(os.path.join(res_cur_dir,res_dest_dir,f_res))+'\n')
+							#print('DEBUG: actOnResult: copy file '+str(os.path.join(res_cur_dir,f_res))+' to '+str(os.path.join(res_cur_dir,res_dest_dir,f_res))+'\n')
 							shutil.copy(os.path.join(res_cur_dir,f_res), os.path.join(res_cur_dir,res_dest_dir,f_res))
 						else:
-							print('DEBUG: actOnResult: move file '+str(os.path.join(res_cur_dir,f_res))+' to '+str(os.path.join(res_cur_dir,res_dest_dir,f_res))+'\n')
+							#print('DEBUG: actOnResult: move file '+str(os.path.join(res_cur_dir,f_res))+' to '+str(os.path.join(res_cur_dir,res_dest_dir,f_res))+'\n')
 							shutil.move(os.path.join(res_cur_dir,f_res), os.path.join(res_cur_dir,res_dest_dir,f_res))
 				elif os.path.isdir(os.path.join(res_cur_dir,f_res)):	# Result is a directory
 					# Remove the directory from the destination path if already exist there
@@ -953,7 +953,7 @@ class vifi():
 		
 		try:
 			for f in conf:
-				print("DEBUG: remove result "+str(f)+" from path "+str(data_path)+"\n")
+				#print("DEBUG: remove result "+str(f)+" from path "+str(data_path)+"\n")
 				if os.path.isfile(os.path.join(data_path,f)):	# To remove a file
 					os.remove(os.path.join(data_path,f))
 				elif os.path.isdir(os.path.join(data_path,f)):	# To remove a folder
@@ -1920,7 +1920,7 @@ class vifi():
 								
 								# Check if the service still needs to iterate
 								while self.serIterate(iter_conf=conf_in['services'][ser]['iterative'],ser_it_no=ser_it,stop_itarting_path=os.path.join(script_path_in,request,"stop.iterating")):
-									print('At new iteration, iteration: '+str(servs[ser]['cur_iter'])+', stop: '+str(os.path.isfile(os.path.join(script_path_in,request,"stop.iterating"))))
+									#print('DEBUG: At new iteration, iteration: '+str(servs[ser]['cur_iter'])+', stop: '+str(os.path.isfile(os.path.join(script_path_in,request,"stop.iterating"))))
 									# Check required service name uniqueness (Just a precaution, as the request name- which should also be the service name- must be unique when the user made the request)
 									service_name=self.checkSerName(ser=ser,iter_no=ser_it,client=client)
 									if not service_name:
@@ -1998,7 +1998,7 @@ class vifi():
 									# Check completeness of created service to transfer results (if required) and to end service
 									if self.checkServiceComplete(client,service_name,int(task_no),int(ser_ttl)):
 										# Log completeness time
-										print('after service complete, iteration: '+str(servs[ser]['cur_iter'])+', stop: '+str(os.path.isfile(os.path.join(script_path_in,request,"stop.iterating"))))
+										#print('DEBUG: after service complete, iteration: '+str(servs[ser]['cur_iter'])+', stop: '+str(os.path.isfile(os.path.join(script_path_in,request,"stop.iterating"))))
 										ser_end_time=time.time()
 										self.req_list[request]['services'][service_name]['end']=ser_end_time
 										self.req_list[request]['services'][service_name]['status']='succeed'
@@ -2007,12 +2007,6 @@ class vifi():
 										# Update central middleware log if required
 										mes={'request':request,'service':service_name,'end':ser_end_time,'status':'succeed'}
 										self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
-										
-										# DEBUG: Check the stop.iterating file exists
-										if os.path.isfile('/home/ubuntu/requests/ssdf/in/ssdf_user/stop.iterating'):
-											print('Found stop.iterating at '+str(os.path.join(script_processed,'stop.iterating'))+'\n')	
-										if os.path.isfile('/home/ubuntu/requests/ssdf/in/ssdf_user/results/stop.iterating'):
-											print('Found stop.iterating at '+str(os.path.join(script_processed,req_res_path_per_request,'stop.iterating'))+'\n')	
 										
 										# Move/Copy (or other required sequence of actions) required results, if any, to specified destinations
 										if conf_in['services'][ser]['results']:
@@ -2058,9 +2052,7 @@ class vifi():
 										if 'nifi' in conf_in['services'][ser]:
 											self.req_list[request]['services'][service_name]['nifi']=[]
 											for nifi_sec in conf_in['services'][ser]['nifi']:
-												# DEBUG if stop.iterating exist
-												if os.path.isfile(os.path.join(script_processed,'stop.iterating')):
-													print('stop.iterating exists for '+str(nifi_sec['target_uri']))
+												
 												if self.checkTransfer(nifi_sec['transfer'],servs,ser,os.path.join(script_path_in,request),flog):
 													res_name=self.nifiTransfer(user_nifi_conf=nifi_sec, \
 																	data_path=os.path.join(script_processed,req_res_path_per_request), \
@@ -2103,7 +2095,7 @@ class vifi():
 										tmp_ser_stat=False
 										break	
 									
-									print('tmp_ser_stat: '+str(tmp_ser_stat))
+									#print('DEBUG: tmp_ser_stat: '+str(tmp_ser_stat))
 									
 									# Update service iteration number
 									ser_it+=1
@@ -2121,7 +2113,7 @@ class vifi():
 									
 								# Update request status according to current service status, and abort request if any service fails
 								final_req_stat=final_req_stat and tmp_ser_stat
-								print('final_req_stat: '+str(final_req_stat))
+								#print('DEBUG: final_req_stat: '+str(final_req_stat))
 								if not final_req_stat:
 									break
 							
