@@ -36,6 +36,9 @@ Each VIFI-node should have a "requests" folder that contains different directori
 * failed: Upon failure in processing current VIFI request, results are moved to a separate directory in this folder for further investigation.
 * log: Keeps logging information of each VIFI request status (e.g., arrival, processing, success and failure)
 
+#### Installation Procedure
+Please, refer to (https://bitbucket.org/vifi-uncc/vifi_comu_analytics/wiki/Installation%20Procedure) for more information on installation
+
 ### Contribution guidelines ###
 
 VIFI follows a phased approach during devlopement. Thus, the more use cases we have, the more we learn to improve VIFI and identificy commoen requirements between different cases. Thus, we appreciate any use case that can benifit from VIFI (e.g., distributed big data nalaytics).
