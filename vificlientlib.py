@@ -127,7 +127,7 @@ class User(Resource):
                 return conf, 200
             return "User configuration file not found", 404
         
-        
+    
         elif name.lower()=='services':  # Return all services in the user configuration file
             services=getServices(request.args)
             if successRequestKey in services:
