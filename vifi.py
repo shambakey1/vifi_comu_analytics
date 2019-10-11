@@ -767,6 +767,7 @@ class vifi():
 		# TODO: Implement
 		pass
 		
+		
 	def getSerName(self, ser_name:str='', iter_no:int=0, flog:TextIOWrapper=None) -> str:
 		''' Generate a unique VIFI request (i.e., service) name all over VIFI system
 		@param ser_name: Original service name. If given, this service name will be modified. Otherwise, a new name will be generated
