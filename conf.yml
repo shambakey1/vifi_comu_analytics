@@ -1,0 +1,180 @@
+################ SAMPLE VIFI USER CONFIGURATION FILE ###################
+#TODO: Currently, this file is created manually. In the future, a function can be used to generate this file \
+# to generate some parameters appropriately (e.g., service name can be unique for this user). Also, a GUI can be used \
+# to generate this file
+
+userid: &userid jpl_cordex_sg1           # User name should be a universal unique name (e.g., the username at institution)
+fin_dest: # Final destination to transfer final results
+ transfer: False # If true, then navigate all subsections to determin where final results will be transfered. Otherwise, final results will not be transfered anywhere, evenif some sub-sections have confirmed transmission of final results
+ s3:                        # This section for S3 bucket transfer of specified results
+  transfer: False
+  bucket: uncc-vifi-bucket
+  path: jpl_cordex
+ sftp:                        # This section for S3 bucket transfer of specified results
+  transfer: False
+  host: 'vifiuitasks-aws.uncc.edu'
+  port: 22
+  username: 'nifisftp'
+  password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
+  dest_path: '/home/nifisftp/stat_analysis' #The destination path on the SFTP Server to store the files. The path DOES NOT include the file names
+ nifi:                        # This section for NIFI transfer of specified results
+  transfer: False 
+  archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
+  archtype: 'zip'
+  target_uri:  # Target NIFI remote process group to transfer results file
+  target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
+services:                    # Group of required services for current request. Thus, a single request (to a specified (sub)workflow) consists of one or more services. The services are sequential 
+ ocw_cordex_stg1:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
+  iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
+   max_rep: 1               # Maximum iteration numbers. Default is 1 to run the service only once. .inf (yes, with dot at the beginning as this is the YAML way to represenet infinity) if other criteria will be used to determine number of iterations 
+   cur_iter: 0              # Current iteration number of current service. If equal to @max_rep, then the current service has finished all its iterations 
+  dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
+   files:                    # Lisf of files/directories that should exist for current service to run including the @script. 'f' stands for 'file', while 'd' stands for 'directory'. All files/directories are relative to user request location
+    cordex1.py: f
+    nam_out: d
+   ser:                      # List of preceeding services that should exist (or completed) before current service can run
+   fn:                       # TODO: List of functions that define 'precedence'
+  script: cordex1.py # The user script to run inside created service. Each service has, at most, one script. If the user needs to run multiple files, then these files should be combined into a single script
+  image: "shambakey1/ocw_cordex"    # The image (e.g., docker image). Each service has only one image
+  cmd_eng: python            # Command to run user's script
+  args:                      # List of arguments to be passed for user's script
+  - NAM-44
+  - "/data/output/CORDEX/analysis"
+  - "/data/input/obs4mips"
+  - "/data/input/CORDEX/NAM-44/*"
+  tasks: 1                   # Required number of tasks for the created service
+  data:                      # Required data for the service
+   NAM-44:                     # 'key' is the data 'key' as retrived by data management layer
+    container_data_path: "/data/input/CORDEX/NAM-44" # Data path insided the created service (e.g., data path inside docker container)
+    options:                 # Options like requesting data mounting in write mode in the created service
+   obs4mips: 
+    container_data_path: "/data/input/obs4mips" # Data path insided the created service (e.g., data path inside docker container)
+    options:                 # Options like requesting data mounting in write mode in the created service
+  container_dir:      # Path to map required user's files into container (i.e., the created 'request' folder for this user will be mapped to the value of this parameter)
+  work_dir:           # Work directory inside container
+  envs:                      # List of user specified environment variables (in the form key=val) to be used within the containerized application
+  #- 't={{.Task.Slot}}'
+  #- 'repl=1
+  mnts:                      # List of user specified mounts (in the form source:target:options) to be used within the containerized application
+  - cordex1.py:/usr/local/climate/RCMES/CORDEX/cordex1.py
+  - nam_out:/data/output/CORDEX/analysis:rw
+  results: &results                  # Set of result files/directories of the service
+  toremove:                 # List of files/directories to remove after current service (iteration) because a new updated version of the file/folder should be received before the new service (iteration) starts
+#  - a.out                   # File
+#  - b                       # Directory
+  ser_check_thr: 300         # Service check threshold (ttl) to check service completness
+  s3:                        # This section for S3 bucket transfer of specified results
+    transfer: 
+     condition: 'last_iteration or stop_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one. Different conditions can be combined by different logical operands (e.g., and, or, not)
+    bucket: uncc-vifi-bucket
+    path: jpl_cordex
+    results:                  # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
+    - 'grad.out'
+    - 'nll.out'
+    - 'thetas.out'
+  sftp:                        # This section for SFTP Server transfer of specified results
+    transfer: 
+     condition: 'last_iteration or stop_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one. Different conditions can be combined by different logical operands (e.g., and, or, not)
+    host: 'vifiuitasks-aws.uncc.edu'
+    port: 22
+    username: 'nifisftp'
+    password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
+    dest_path: '/home/nifisftp/stat_analysis' #The destination path on the SFTP Server to store the files. The path DOES NOT include the file names
+    results:                  # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
+    - 'grad.out'
+    - 'nll.out'
+    - 'thetas.out'
+  nifi:                        # This section for NIFI transfer of specified results
+  - transfer: 
+     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
+    archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
+    archtype: 'zip'
+    target_uri: 'a.b.c.d' # Target NIFI remote process group to transfer results file
+    target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
+    results: *results
+  - transfer: 
+     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
+    archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
+    archtype: 'zip'
+    target_uri: 'e.f.g.h' # Target NIFI remote process group to transfer results file
+    target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
+    results: 
+    - a.out
+    - b.out  
+ 
+ ocw_cordex_stg2:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
+  iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
+   max_rep: 1               # Maximum iteration numbers. Default is 1 to run the service only once. .inf (yes, with dot at the beginning as this is the YAML way to represenet infinity) if other criteria will be used to determine number of iterations
+   cur_iter: 0              # Current iteration number of current service. If equal to @max_rep, then the current service has finished all its iterations 
+  dependencies:              # List of depenedcies (i.e., preceeding services) for current service. #TODO: Currently, there is no implementation for precedence features
+   files:                    # Lisf of files/directories that should exist for current service to run including the @script. 'f' stands for 'file', while 'd' stands for 'directory'. All files/directories are relative to user request location
+    cordex2.py: f
+    nam_out: d
+    nam_out/config_files.csv: f
+   ser:                      # List of preceeding services that should exist (or completed) before current service can run
+   fn:                       # TODO: List of functions that define 'precedence'
+  script: cordex2.py # The user script to run inside created service. Each service has, at most, one script. If the user needs to run multiple files, then these files should be combined into a single script
+  image: "shambakey1/ocw_cordex"    # The image (e.g., docker image). Each service has only one image
+  cmd_eng: python            # Command to run user's script
+  args:                      # List of arguments to be passed for user's script
+  - "/data/output/CORDEX/analysis/config_files.csv"
+  tasks: 1                   # Required number of tasks for the created service
+  data:                      # Required data for the service
+   NAM-44:                     # 'key' is the data 'key' as retrived by data management layer
+    container_data_path: "/data/input/CORDEX/NAM-44" # Data path insided the created service (e.g., data path inside docker container)
+    options:                 # Options like requesting data mounting in write mode in the created service
+   obs4mips: 
+    container_data_path: "/data/input/obs4mips" # Data path insided the created service (e.g., data path inside docker container)
+    options:                 # Options like requesting data mounting in write mode in the created service
+  container_dir:      # Path to map required user's files into container (i.e., the created 'request' folder for this user will be mapped to the value of this parameter)
+  work_dir:           # Work directory inside container
+  envs:                      # List of user specified environment variables (in the form key=val) to be used within the containerized application
+  - 't={{.Task.Slot}}'
+  - 'repl=1'
+  mnts:                      # List of user specified mounts (in the form source:target:options) to be used within the containerized application
+  - cordex2.py:/usr/local/climate/RCMES/CORDEX/cordex2.py
+  - nam_out:/data/output/CORDEX/analysis:rw
+  results: &results1                  # Set of result files/directories of the service
+  'nam_out':                 # Each result file/directory specifies a sequence of actions that should be done on this file/directory before the nexst service (iteration) starts. The default action is to move the file/directory to the 'results' subfolder under the current user request root folder
+  - action: move             # Default action
+  'stop.iterating':          # Special VIFI file that indicates that iteraion should stop. VIFI requires 'stop.iterating' file to exist under the user root request folder. Otherwise, VIFI will not be able to determine whether to stop iteration or not. Therefore, if it is required to transfer this file to other remove VIFI nodes (for other nodes to stop iteration), then 'stop.iterating' should be copied, not moved, to the 'results' folder under the current user root request folder
+  - action: copy
+  toremove:                 # List of files/directories to remove after current service (iteration) because a new updated version of the file/folder should be received before the new service (iteration) starts
+#  - a.out                   # File
+#  - b                       # Directory
+  ser_check_thr: 3600         # Service check threshold (ttl) to check service completness
+  s3:                        # This section for S3 bucket transfer of specified results
+    transfer: 
+     condition: 'last_iteration or stop_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one. Different conditions can be combined by different logical operands (e.g., and, or, not)
+    bucket: uncc-vifi-bucket
+    path: jpl_cordex
+    results: *results1                 # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
+  sftp:                        # This section for SFTP Server transfer of specified results
+    transfer: 
+     condition: 'last_iteration or stop_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one. Different conditions can be combined by different logical operands (e.g., and, or, not)
+    host: 'vifiuitasks-aws.uncc.edu'
+    port: 22
+    username: 'nifisftp'
+    password: 'osdjf09efjjsflzjdfjweij09ej0fjdjfa'
+    dest_path: '/home/nifisftp/stat_analysis' #The destination path on the SFTP Server to store the files. The path DOES NOT include the file names
+    results:                  # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
+    - 'grad.out'
+    - 'nll.out'
+    - 'thetas.out'
+  nifi:                        # This section for NIFI transfer of specified results
+  - transfer: 
+     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
+    archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
+    archtype: 'zip'
+    target_uri: 'a.b.c.d' # Target NIFI remote process group to transfer results file
+    target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
+    results: *results1
+  - transfer: 
+     condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
+    archname: *userid # THIS VALUE SHOULD NOT BE CHANGED. Name of the zip compressed file that contains the final results to be transfered by NIFI.
+    archtype: 'zip'
+    target_uri: 'e.f.g.h' # Target NIFI remote process group to transfer results file
+    target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
+    results: 
+    - a.out
+    - b.out    
