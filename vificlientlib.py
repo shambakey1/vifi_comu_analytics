@@ -2,8 +2,6 @@ from flask import Flask, request
 from flask_restful import Api, Resource, reqparse
 import yaml, os, traceback
 from _io import TextIOWrapper
-from jinja2.lexer import Failure
-from pip._internal.cli.status_codes import SUCCESS
 
 app = Flask(__name__)
 api = Api(app)
@@ -48,14 +46,15 @@ def getConfFromReqArgs(reqargs:dict,flog:TextIOWrapper=None) -> dict:
     @rtype: dict
     '''
     
-    if reqargs and 'path' in reqargs and os.path.isfile(reqargs['path']):   # Load user configuration file from specified path
-        conf={successRequestKey:load_conf(reqargs['path'])}
+    if 'path' in reqargs:   # Load user configuration file from specified path
+        if os.path.isfile(reqargs['path']):
+            return {successRequestKey:load_conf(reqargs['path'])}
+        else:
+            return {failureRequestKey:'Could not find user configuration file at the specified path'}
     elif os.path.isfile("conf.yml"):    # If no path is specified for user configuration file, then set path to default location which is 'conf.yml'
-        conf={successRequestKey:load_conf("conf.yml")}
+        return {successRequestKey:load_conf("conf.yml")}
     else:
-        conf={failureRequestKey:'Could not find user configuration file'}
-    
-    return conf
+        return {failureRequestKey:'Could not find user configuration file'}
 
 def getServices(reqargs:dict,flog:TextIOWrapper=None)->dict:
     ''' Return configurations for all services in the specified configuration.
@@ -67,7 +66,7 @@ def getServices(reqargs:dict,flog:TextIOWrapper=None)->dict:
     @rtype: dict 
     '''
     
-    conf=getConfFromReqArgs(reqargs)
+    conf=getConfFromReqArgs(reqargs,flog)
     if successRequestKey in conf:
         conf=conf[successRequestKey]
         if 'services' in conf:
@@ -77,19 +76,24 @@ def getServices(reqargs:dict,flog:TextIOWrapper=None)->dict:
     else:
         return conf
     
-def getService(reqargs:dict,ser:str,flog:TextIOWrapper=None)->dict:
+def getService(reqargs:dict,flog:TextIOWrapper=None)->dict:
     ''' Return configuration of specified service if exists.
     @param reqargs: Request arguments
     @type reqargs: dict
-    @param ser: Required service to be extracted from configuration
-    @type ser: str
     @param flog: Log file to record raised events
     @type flog: TextIOWrapper (file object) 
     @return: Service configuration
     @rtype: dict  
     '''
     
-    services=getServices(reqargs)
+    # Confirm that required service name is mentioned in the request arguments
+    if 'service' in reqargs:
+        ser=reqargs['service']
+    else:
+        return {failureRequestKey:'No service is specified in request arguments'}
+    
+    # Return required service if exists
+    services=getServices(reqargs,flog)
     if successRequestKey in services:
         services=services[successRequestKey]
         if ser in services:
@@ -109,64 +113,155 @@ def getNiFiTransfers(reqargs:dict,flog:TextIOWrapper=None)->dict:
     @rtype: List or dict  
     '''
     
-    ser=getService(reqargs)
+    ser=getService(reqargs,flog)
     if successRequestKey in ser:
+        ser=ser[successRequestKey]
         if 'nifi' in ser:
-            return ser['nifi']
+            return {successRequestKey:ser['nifi']}
         else:
             return {failureRequestKey:'Could not find NiFi transfers for the specified service'}
     else:
         return ser
+    
+def setNiFiTransferResults(reqargs:dict,flog:TextIOWrapper=None)->dict:
+    ''' Change results sent to specified NiFi destination.
+    @param reqargs: Request arguments including the service name to be retrieved
+    @type reqargs: dict
+    @param flog: Log file to record raised events
+    @type flog: TextIOWrapper (file object) 
+    @return: NiFi transfer configurations of specified service
+    @rtype: List or dict  
+    '''
+    
+    # Check if target argument is specified
+    if 'target' in reqargs:
+        target=reqargs['target']
+    else:
+        return {failureRequestKey:'No target NiFi is specified'}
+    
+    # Check if results argument is specified
+    if 'results' not in reqargs:
+        return {failureRequestKey:'No results are specified'} 
+    
+    # Check if results are specified in a list
+    if not isinstance(reqargs['results'],list):
+        return {failureRequestKey:'Results should be in a list'}
+    
+    # Extract all nifi transfers in the configuration file 
+    nifitransfers=getNiFiTransfers(reqargs, flog)
+    if successRequestKey in nifitransfers:
+        nifitransfers=nifitransfers[successRequestKey]
+        # Extract the nifi transfer with the specific target
+        for nifitransfer in nifitransfers:
+            if nifitransfer['target_uri']==target:
+                nifitransfer['results']=reqargs['results']
+                # Get the path of the configuration file
+                if 'path' in reqargs:
+                    path=reqargs['path']
+                else:
+                    path='conf.yml'
+                # Update the configuration file
+                with open(path,'r') as f:
+                    conf=yaml.load(f)
+                with open(path,'w') as f:
+                    conf['services'][reqargs['service']]['nifi']=nifitransfers
+                    yaml.dump(conf,f)   
+                return {successRequestKey:'Results for nifi transfer with target '+reqargs['target']+' have been updated'}
+        # If no nifi transfer exists with the specified target, then return an error
+        return {failureRequestKey:'No nifi with the specified target exists'}    
+    # Something went wrong in extracting nifi transfers. Just return the error    
+    else:
+        return nifitransfers
+
+def setNiFiTransferCondition(reqargs:dict,flog:TextIOWrapper=None)->dict:
+    ''' Change the transfer condition of the specified NiFi destination.
+    @param reqargs: Request arguments including the service name to which NiFi transfer condition will be changed
+    @type reqargs: dict
+    @param flog: Log file to record raised events
+    @type flog: TextIOWrapper (file object)
+    @return: NiFi transfer configurations of specified service
+    @rtype: List or dict  
+    '''
+    
+    # Check if target argument is specified
+    if 'target' in reqargs:
+        target=reqargs['target']
+    else:
+        return {failureRequestKey:'No target NiFi is specified'}
+    
+    # Check if results argument is specified
+    if 'condition' not in reqargs:
+        return {failureRequestKey:'No conditions are specified'}
+    
+    # Extract all nifi transfers in the configuration file 
+    nifitransfers=getNiFiTransfers(reqargs, flog)
+    if successRequestKey in nifitransfers:
+        nifitransfers=nifitransfers[successRequestKey]
+        # Extract the nifi transfer with the specific target
+        for nifitransfer in nifitransfers:
+            if nifitransfer['target_uri']==target:
+                nifitransfer['transfer']={'condition':reqargs['condition']}
+                # Get the path of the configuration file
+                if 'path' in reqargs:
+                    path=reqargs['path']
+                else:
+                    path='conf.yml'
+                # Update the configuration file
+                with open(path,'r') as f:
+                    conf=yaml.load(f)
+                with open(path,'w') as f:
+                    conf['services'][reqargs['service']]['nifi']=nifitransfers
+                    yaml.dump(conf,f)   
+                return {successRequestKey:'Condition for nifi transfer with target '+reqargs['target']+' has been updated'}
+        # If no nifi transfer exists with the specified target, then return an error
+        return {failureRequestKey:'No nifi with the specified target exists'}    
+    # Something went wrong in extracting nifi transfers. Just return the error    
+    else:
+        return nifitransfers
+    
+def setNiFiTransfer(reqargs:dict,flog:TextIOWrapper=None)->dict:
+    ''' Create/Change a NiFi sent to specified NiFi destination.
+    @param reqargs: Request arguments including the service name to which NiFi will be changed/created
+    @type reqargs: dict
+    @param flog: Log file to record raised events
+    @type flog: TextIOWrapper (file object) 
+    @return: NiFi transfer configurations of specified service
+    @rtype: List or dict  
+    '''
+    
+    #TODO
+    pass
 
 class User(Resource):
 
     def get(self, name):
         if name.lower()=='conf':    # The user is asking for the whole configuration file
-            conf=getConfFromReqArgs(request.args)
-            if failureRequestKey not in conf:
-                return conf, 200
-            return "User configuration file not found", 404
-        
+            conf=getConfFromReqArgs(request.get_json())
+            if successRequestKey in conf:
+                return conf[successRequestKey], 200
+            else:
+                return conf[failureRequestKey], 404
     
         elif name.lower()=='services':  # Return all services in the user configuration file
-            services=getServices(request.args)
+            services=getServices(request.get_json())
             if successRequestKey in services:
                 return services[successRequestKey], 200
-                if services:
-                    return services, 200
-                return "User coniguration has no services",404
-            return "User configuration file not found", 404
+            else:
+                return services[failureRequestKey], 404
         
         elif name.lower()=='service': # Return specific service configuration
-            conf=getConfFromReqArgs(request.args)
-            if conf:
-                services=getServices(conf)
-                if services:
-                    if 'service' in request.args:
-                        serv=getService(conf, request.args['service'])
-                        if serv:
-                            return serv, 200
-                        return "The specified service not founud",404
-                    return "No service has been specified. Please specify a service and try again", 404
-                return "User coniguration has no services",404
-            return "User configuration file not found", 404
-        
+            ser=getService(request.get_json())
+            if successRequestKey in ser:
+                return ser[successRequestKey], 200
+            else:
+                return ser[failureRequestKey],404
+       
         elif name.lower()=='nifi_transfers':    # The user is asking for the nifi destinations associated with a specific service, or all services if no service is specified
-            conf=getConfFromReqArgs(request.args)
-            if conf:
-                services=getServices(conf)
-                if services:
-                    if 'service' in request.args:
-                        serv=getService(conf, request.args['service'])
-                        if serv:
-                            nifitransfers=getNiFiTransfers(serv)
-                            if nifitransfers:
-                                return nifitransfers, 200
-                            return "Specified service has no nifi transfers", 404
-                        return "The specified service not founud",404
-                    return "No service has been specified. Please specify a service and try again", 404
-                return "User coniguration has no services",404
-            return "User configuration file not found", 404
+            nifitransfers=getNiFiTransfers(request.get_json())
+            if successRequestKey in nifitransfers:
+                return nifitransfers[successRequestKey],200
+            else:
+                return nifitransfers[failureRequestKey],404
 
     def post(self, name):
         parser = reqparse.RequestParser()
@@ -187,26 +282,20 @@ class User(Resource):
         return user, 201
 
     def put(self, name):
-        if name.lower()=='changeAllNiFiTransfers':    # The user is asking to update the nifi destinations associated with a specific service
-            conf=getConfFromReqArgs(request.args)
-            if conf:
-                services=getServices(conf)
-                if services:
-                    if 'service' in request.args:
-                        serv=getService(conf, request.args['service'])
-                        if serv:
-                            nifitransfers=getNiFiTransfers(serv)
-                            if not nifitransfers:
-                                nifitransfer={}
-                            if 'condition' in request.args:
-                                nifitransfers['transfer']={'condition':request.args['condition']}
-                                
-                            return "Specified service has no nifi transfers", 404
-                        return "The specified service not founud",404
-                    return "No service has been specified. Please specify a service and try again", 404
-                return "User coniguration has no services",404
-            return "User configuration file not found", 404
-        return user, 201
+        if name.lower()=='changenifitransferresults':    # Change NiFi results submitted to specified destination
+            res=setNiFiTransferResults(request.get_json())
+            if successRequestKey in res:
+                return res[successRequestKey], 201
+            else:
+                return res[failureRequestKey],404
+        elif name.lower()=='changenifitransfercondition':    # Change NiFi results submitted to specified destination
+            res=setNiFiTransferCondition(request.get_json())
+            if successRequestKey in res:
+                return res[successRequestKey], 201
+            else:
+                return res[failureRequestKey],404
+        else:
+            return 'No valid operation has been specified', 404        
 
     def delete(self, name):
         global users

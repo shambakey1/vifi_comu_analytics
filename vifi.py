@@ -19,7 +19,6 @@ from multiprocessing import Process
 from multiprocessing.managers import BaseManager
 from _io import TextIOWrapper
 import argparse
-from requests.models import Response
 
 
 class vifi():
@@ -1678,8 +1677,9 @@ class vifi():
 	def serIterate(self, iter_conf:dict=None, ser_it_no:int=0, stop_itarting_path:str='stop.iterating', flog:TextIOWrapper=None) -> bool:
 		''' Determine if it is required to repeat the service again. If no configuration is given, then the service is not repeated any more.
 		Current implementation checks:
-		1- Maximum number of iterations has not been exceeded.
-		2- If file named 'stop.iterating' exists, then iteration stops. The 'stop.iterating' file is produced by current service to stop iteration. The file can contain further information
+		1- If file named 'stop.iterating' exists, then iteration stops. The 'stop.iterating' file is produced by current service to stop iteration. The file can contain further information
+		2- If condition 1 is not met, then maximum number of iterations has not been exceeded.
+		3- If condition 1 is not met, if iterations are infinite by using the special word 'inf'
 		@param iter_conf: Service configuration for the iterations
 		@type iter_conf: dict
 		@param ser_it_no: Current service iteration number. Incremented each time the service runs
@@ -1696,7 +1696,7 @@ class vifi():
 			if os.path.isfile(stop_itarting_path):
 				return False
 			if iter_conf:
-				if ser_it_no < iter_conf['max_rep']:
+				if str.lower(iter_conf['max_rep'])=='inf' or ser_it_no < iter_conf['max_rep']:
 					return True
 			
 			return False
