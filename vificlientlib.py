@@ -285,13 +285,13 @@ class User(Resource):
         if name.lower()=='changenifitransferresults':    # Change NiFi results submitted to specified destination
             res=setNiFiTransferResults(request.get_json())
             if successRequestKey in res:
-                return res[successRequestKey], 201
+                return res[successRequestKey], 200
             else:
                 return res[failureRequestKey],404
         elif name.lower()=='changenifitransfercondition':    # Change NiFi results submitted to specified destination
             res=setNiFiTransferCondition(request.get_json())
             if successRequestKey in res:
-                return res[successRequestKey], 201
+                return res[successRequestKey], 200
             else:
                 return res[failureRequestKey],404
         else:
