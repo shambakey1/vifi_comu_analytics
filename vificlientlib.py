@@ -75,6 +75,26 @@ def getServices(reqargs:dict,flog:TextIOWrapper=None)->dict:
             return {failureRequestKey:'Could not find any service in the specified user configuration file'}
     else:
         return conf
+
+def getCurrentService(reqargs:dict,flog:TextIOWrapper=None)->str:
+    ''' Return the name of the current service, or 'pre_services' if no service has been processed yet, or 'post_services' if all services have been processed.
+    @param reqargs: Request arguments
+    @type reqargs: dict
+    @param flog: Log file to record raised events
+    @type flog: TextIOWrapper (file object) 
+    @return: Services configuration
+    @rtype: dict 
+    '''
+    
+    conf=getConfFromReqArgs(reqargs,flog)
+    if successRequestKey in conf:
+        conf=conf[successRequestKey]
+        if 'services' in conf:
+            return {successRequestKey:conf['services']['curserv']}
+        else:
+            return {failureRequestKey:'Could not find a record for current running service'}
+    else:
+        return conf
     
 def getService(reqargs:dict,flog:TextIOWrapper=None)->dict:
     ''' Return configuration of specified service if exists.
@@ -244,6 +264,13 @@ class User(Resource):
     
         elif name.lower()=='services':  # Return all services in the user configuration file
             services=getServices(request.get_json())
+            if successRequestKey in services:
+                return services[successRequestKey], 200
+            else:
+                return services[failureRequestKey], 404
+            
+        elif name.lower()=='current_service':  # Return the name of the current service
+            services=getCurrentService(request.get_json())
             if successRequestKey in services:
                 return services[successRequestKey], 200
             else:
