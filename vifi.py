@@ -1903,6 +1903,10 @@ class vifi():
 								if ser not in servs:
 									continue
 								
+								# Record service name as current service being processed
+								conf_in['services']['curserv']=ser
+								self.dump_conf(conf_in, os.path.join(script_path_in, request, conf_file_name), flog)
+								
 								# Set current service iteration
 								ser_it = servs[ser]['cur_iter']
 																
@@ -2110,6 +2114,10 @@ class vifi():
 							# Record request end time and update internal request dictionary
 							req_end_time = time.time()
 							self.req_list[request]['end'] = req_end_time
+							
+							# Update 'curserv' (i.e., current service) in request configuration file to indicate that all services have been processed
+							conf_in['services']['curserv']='post_services'
+							self.dump_conf(conf_in, os.path.join(script_path_in, request, conf_file_name), flog)
 							
 							# Update central middleware log if required
 							mes = {'request':request, 'end':req_end_time}

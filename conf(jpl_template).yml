@@ -24,6 +24,7 @@ fin_dest: # Final destination to transfer final results
   target_uri:  # Target NIFI remote process group to transfer results file
   target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
 services:                    # Group of required services for current request. Thus, a single request (to a specified (sub)workflow) consists of one or more services. The services are sequential 
+ curserv: pre_service        # Specifies which service is currently being processed by VIFI. If 'pre_services', then no service has been processed yet. If 'post_services', then all services have been processed. Otherwise, the service name is recorded.
  ocw_cordex_stg1:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
    max_rep: 1               # Maximum iteration numbers. Default is 1 to run the service only once. .inf (yes, with dot at the beginning as this is the YAML way to represenet infinity) if other criteria will be used to determine number of iterations 
