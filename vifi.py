@@ -5,7 +5,7 @@ Created on Mar 29, 2018
 @contact: shambakey1@gmail.com
 '''
 
-import yaml, time, os, sys, shutil, json, uuid, requests, traceback, select, multiprocessing, paramiko
+import yaml, time, os, sys, shutil, json, uuid, requests, traceback, select, multiprocessing, paramiko, glob
 import nipyapi
 from nipyapi import canvas, templates
 from nipyapi.nifi.apis.remote_process_groups_api import RemoteProcessGroupsApi	
@@ -989,11 +989,12 @@ class vifi():
 			if 'results' in user_nifi_conf and user_nifi_conf['results']:
 				# Create the user_name directory to hold the intermediate results that will be transfered
 				os.makedirs(os.path.join(data_path, user_nifi_conf['archname']), exist_ok=False)
-				for res in user_nifi_conf['results']:
-					if os.path.isfile(os.path.join(data_path, res)):
-						shutil.copy(os.path.join(data_path, res), os.path.join(data_path, user_nifi_conf['archname']))
-					elif os.path.isdir(os.path.join(data_path, res)):
-						shutil.copytree(os.path.join(data_path, res), os.path.join(data_path, user_nifi_conf['archname'], res))
+				for j in [glob.glob(os.path.join(data_path,i)) for i in user_nifi_conf['results']]:	# If the result name is specified with pattern, instead of literal name, then the result name should be extended first to all matching files and directories
+					for res in j:
+						if os.path.isfile(res):
+							shutil.copy(res, os.path.join(data_path, user_nifi_conf['archname']))
+						elif os.path.isdir(res):
+							shutil.copytree(res, os.path.join(data_path, user_nifi_conf['archname'], os.path.basename(res)))
 			else:
 				shutil.copytree(data_path, os.path.join(data_path, user_nifi_conf['archname']))
 			
@@ -1145,25 +1146,26 @@ class vifi():
 		@type flog: TextIOWrapper (file object) 
 		''' 		
 		
-		import boto3
+		import boto3, glob
 		
 		try:
 			s3 = boto3.resource('s3')
 			# If results are specified in the s3 section, then upload specified results to the s3 bucket
 			if 'results' in user_s3_conf and user_s3_conf['results']:
-				for res_item in user_s3_conf['results']:
-					res = os.path.join(data_path, res_item)
-					# If result is file, then upload the file
-					if os.path.isfile(res):
-						data = open(res, 'rb')
-						key_obj = user_s3_conf['path'] + "/" + res_item
-						s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)  # In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
-					elif os.path.isdir(res):
-						for path, dir, f_res in os.walk(res):
-							for f in f_res:
-								data = open(os.path.join(path, f), 'rb')
-								key_obj = user_s3_conf['path'] + "/" + f
-								s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)  # In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
+				for j in [glob.glob(os.path.join(data_path,i)) for i in user_s3_conf['results']]:	# If the result name is specified with pattern, instead of literal name, then the result name should be extended first to all matching files and directories
+					for res in j:
+						if os.path.isfile(res):
+							data = open(res, 'rb')
+							key_obj = user_s3_conf['path'] + "/" + os.path.basename(res)
+							s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)  # In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
+						elif os.path.isdir(res):
+							for path, _, f_res in os.walk(res):
+								for f in f_res:
+									data = open(os.path.join(path, f), 'rb')
+									key_obj = user_s3_conf['path'] + "/" + f
+									s3.Bucket(user_s3_conf['bucket']).put_object(Key=key_obj, Body=data)  # In this script, we do not need AWS credentials, as this EC2 instance has the proper S3 rule
+
+				
 			# If no results are specified for the s3 section, then upload the whole results section
 			else:
 				for path, dir, f_res in os.walk(data_path):
@@ -1192,7 +1194,7 @@ class vifi():
 		@return: True if transfer succeeds. False otherwise
 		@rtype: bool
 		'''			
-
+		
 		try:
 
 			# Extract required SFTP parameters from user configuration file
@@ -1214,15 +1216,15 @@ class vifi():
 			
 			# If results are specified in the sftp section, then upload specified results to the sftp
 			if 'results' in user_sftp_conf and user_sftp_conf['results']:
-				for res_item in user_sftp_conf['results']:
-					res = os.path.join(data_path, res_item)
-					# If result is file, then upload the file
-					if os.path.isfile(res):
-						sftp_client.put(res, os.path.join(dest_path, res_item))
-					elif os.path.isdir(res):
-						for path, dir, f_res in os.walk(res):
-							for f in f_res:
-								sftp_client.put(os.path.join(path, f), os.path.join(dest_path, f))
+				for j in [glob.glob(os.path.join(data_path,i)) for i in user_sftp_conf['results']]:	# If the result name is specified with pattern, instead of literal name, then the result name should be extended first to all matching files and directories
+					for res in j:
+						if os.path.isfile(res):
+							sftp_client.put(res, os.path.join(dest_path, os.path.basename(res)))
+						elif os.path.isdir(res):
+							for path, _, f_res in os.walk(res):
+								for f in f_res:
+									sftp_client.put(os.path.join(path, f), os.path.join(dest_path, f))
+
 			# If no results are specified for the sftp section, then upload the whole results section
 			else:
 				for path, dir, f_res in os.walk(data_path):
