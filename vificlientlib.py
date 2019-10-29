@@ -142,6 +142,26 @@ def getNiFiTransfers(reqargs:dict,flog:TextIOWrapper=None)->dict:
             return {failureRequestKey:'Could not find NiFi transfers for the specified service'}
     else:
         return ser
+
+def getSFTPTransfers(reqargs:dict,flog:TextIOWrapper=None)->dict:
+    ''' Return SFTP tranfers of specified service if exists.
+    @param reqargs: Request arguments including the service name to be retrieved
+    @type reqargs: dict
+    @param flog: Log file to record raised events
+    @type flog: TextIOWrapper (file object) 
+    @return: SFTP transfer configurations of specified service
+    @rtype: dict  
+    '''
+    
+    ser=getService(reqargs,flog)
+    if successRequestKey in ser:
+        ser=ser[successRequestKey]
+        if 'sftp' in ser:
+            return {successRequestKey:ser['sftp']}
+        else:
+            return {failureRequestKey:'Could not find SFTP transfers for the specified service'}
+    else:
+        return ser
     
 def setNiFiTransferResults(reqargs:dict,flog:TextIOWrapper=None)->dict:
     ''' Change results sent to specified NiFi destination.
@@ -149,8 +169,8 @@ def setNiFiTransferResults(reqargs:dict,flog:TextIOWrapper=None)->dict:
     @type reqargs: dict
     @param flog: Log file to record raised events
     @type flog: TextIOWrapper (file object) 
-    @return: NiFi transfer configurations of specified service
-    @rtype: List or dict  
+    @return: Success of failure of changing results sent to the specified NiFi
+    @rtype: dict  
     '''
     
     # Check if target argument is specified
@@ -193,14 +213,73 @@ def setNiFiTransferResults(reqargs:dict,flog:TextIOWrapper=None)->dict:
     else:
         return nifitransfers
 
+def setSFTPTransferResults(reqargs:dict,flog:TextIOWrapper=None)->dict:
+    ''' Change results sent to SFTP.
+    @param reqargs: Request arguments including the service name to be retrieved
+    @type reqargs: dict
+    @param flog: Log file to record raised events
+    @type flog: TextIOWrapper (file object) 
+    @return: Success of failure of changing results sent to the SFTP
+    @rtype: dict  
+    '''
+    
+    #TODO
+    pass
+    
+def setSFTPTransferCondition(reqargs:dict,flog:TextIOWrapper=None)->dict:
+    ''' Change the transfer condition of the specified SFTP destination.
+    @param reqargs: Request arguments including the service name to which SFTP transfer condition will be changed
+    @type reqargs: dict
+    @param flog: Log file to record raised events
+    @type flog: TextIOWrapper (file object)
+    @return: Success, or failure message of changing the SFTP transfer condition
+    @rtype: dict  
+    '''
+    
+    # Check if target argument is specified
+    if 'target' in reqargs:
+        target=reqargs['target']
+    else:
+        return {failureRequestKey:'No target SFTP is specified'}
+    
+    # Check if results argument is specified
+    if 'condition' not in reqargs:
+        return {failureRequestKey:'No conditions are specified'}
+    
+    # Extract all SFTP transfers in the configuration file 
+    sftptransfers=getSFTPTransfers(reqargs, flog)
+    if successRequestKey in sftptransfers:
+        sftptransfers=sftptransfers[successRequestKey]
+        # Extract the SFTP transfer with the specific target
+        for sftptransfer in sftptransfers:
+            if sftptransfer['host']==target:
+                sftptransfer['transfer']={'condition':reqargs['condition']}
+                # Get the path of the configuration file
+                if 'path' in reqargs:
+                    path=reqargs['path']
+                else:
+                    path='conf.yml'
+                # Update the configuration file
+                with open(path,'r') as f:
+                    conf=yaml.load(f)
+                with open(path,'w') as f:
+                    conf['services'][reqargs['service']]['sftp']=sftptransfers
+                    yaml.dump(conf,f)   
+                return {successRequestKey:'Condition for SFTP transfer with target '+reqargs['target']+' has been updated'}
+        # If no SFTP transfer exists with the specified target, then return an error
+        return {failureRequestKey:'No SFTP with the specified target exists'}    
+    # Something went wrong in extracting SFTP transfers. Just return the error    
+    else:
+        return sftptransfers
+
 def setNiFiTransferCondition(reqargs:dict,flog:TextIOWrapper=None)->dict:
     ''' Change the transfer condition of the specified NiFi destination.
     @param reqargs: Request arguments including the service name to which NiFi transfer condition will be changed
     @type reqargs: dict
     @param flog: Log file to record raised events
     @type flog: TextIOWrapper (file object)
-    @return: NiFi transfer configurations of specified service
-    @rtype: List or dict  
+    @return: Success, or failure message of changing the NiFi transfer condition
+    @rtype: dict  
     '''
     
     # Check if target argument is specified
@@ -213,14 +292,14 @@ def setNiFiTransferCondition(reqargs:dict,flog:TextIOWrapper=None)->dict:
     if 'condition' not in reqargs:
         return {failureRequestKey:'No conditions are specified'}
     
-    # Extract all nifi transfers in the configuration file 
-    nifitransfers=getNiFiTransfers(reqargs, flog)
-    if successRequestKey in nifitransfers:
-        nifitransfers=nifitransfers[successRequestKey]
-        # Extract the nifi transfer with the specific target
-        for nifitransfer in nifitransfers:
-            if nifitransfer['target_uri']==target:
-                nifitransfer['transfer']={'condition':reqargs['condition']}
+    # Extract all SFTP transfers in the configuration file 
+    transfers=getNiFiTransfers(reqargs, flog)
+    if successRequestKey in transfers:
+        transfers=transfers[successRequestKey]
+        # Extract the NiFi transfer with the specific target
+        for transfer in transfers:
+            if transfer['target_uri']==target:
+                transfer['transfer']={'condition':reqargs['condition']}
                 # Get the path of the configuration file
                 if 'path' in reqargs:
                     path=reqargs['path']
@@ -230,14 +309,14 @@ def setNiFiTransferCondition(reqargs:dict,flog:TextIOWrapper=None)->dict:
                 with open(path,'r') as f:
                     conf=yaml.load(f)
                 with open(path,'w') as f:
-                    conf['services'][reqargs['service']]['nifi']=nifitransfers
+                    conf['services'][reqargs['service']]['nifi']=transfers
                     yaml.dump(conf,f)   
-                return {successRequestKey:'Condition for nifi transfer with target '+reqargs['target']+' has been updated'}
-        # If no nifi transfer exists with the specified target, then return an error
-        return {failureRequestKey:'No nifi with the specified target exists'}    
-    # Something went wrong in extracting nifi transfers. Just return the error    
+                return {successRequestKey:'Condition for NiFi transfer with target '+reqargs['target']+' has been updated'}
+        # If no NiFi transfer exists with the specified target, then return an error
+        return {failureRequestKey:'No NiFi with the specified target exists'}    
+    # Something went wrong in extracting SFTP transfers. Just return the error    
     else:
-        return nifitransfers
+        return transfers
     
 def setNiFiTransfer(reqargs:dict,flog:TextIOWrapper=None)->dict:
     ''' Create/Change a NiFi sent to specified NiFi destination.
@@ -289,6 +368,13 @@ class User(Resource):
                 return nifitransfers[successRequestKey],200
             else:
                 return nifitransfers[failureRequestKey],404
+            
+        elif name.lower()=='sftp_transfers':    # The user is asking for the SFTP destinations associated with a specific service, or all services if no service is specified
+            transfers=getSFTPTransfers(request.get_json())
+            if successRequestKey in transfers:
+                return transfers[successRequestKey],200
+            else:
+                return transfers[failureRequestKey],404
 
     def post(self, name):
         parser = reqparse.RequestParser()
@@ -317,6 +403,12 @@ class User(Resource):
                 return res[failureRequestKey],404
         elif name.lower()=='changenifitransfercondition':    # Change NiFi results submitted to specified destination
             res=setNiFiTransferCondition(request.get_json())
+            if successRequestKey in res:
+                return res[successRequestKey], 200
+            else:
+                return res[failureRequestKey],404
+        elif name.lower()=='changesftptransfercondition':    # Change NiFi results submitted to specified destination
+            res=setSFTPTransferCondition(request.get_json())
             if successRequestKey in res:
                 return res[successRequestKey], 200
             else:
