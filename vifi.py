@@ -1232,7 +1232,7 @@ class vifi():
 
 			# If no results are specified for the sftp section, then upload the whole results section
 			else:
-				for path, dir, f_res in os.walk(data_path):
+				for path, _, f_res in os.walk(data_path):
 					for f in f_res:
 						sftp_client.put(os.path.join(path, f), os.path.join(dest_path, f))
 			
@@ -2054,7 +2054,6 @@ class vifi():
 										if 'nifi' in conf_in['services'][ser]:
 											self.req_list[request]['services'][service_name]['nifi'] = []
 											for nifi_sec in conf_in['services'][ser]['nifi']:
-												
 												if self.checkTransfer(nifi_sec['transfer'], servs, ser, os.path.join(script_path_in, request), flog):
 													res_name = self.nifiTransfer(user_nifi_conf=nifi_sec, \
 																	data_path=os.path.join(script_processed, req_res_path_per_request), \
@@ -2073,23 +2072,26 @@ class vifi():
 														flog.write("Intermediate results " + res_name + " transfer by NIFI failed at " + repr(time.time()) + "\n")
 														# TODO: should the user request be terminated? or just continue with future service(vifi_server)
 												
-										# If SFTP is enabled, then transfer required results using SFTP 
-										if self.checkTransfer(conf_in['services'][ser]['sftp']['transfer'], servs, ser, os.path.join(script_path_in, request), flog):
-											res_sftp = self.sftpTransfer(user_sftp_conf=conf_in['services'][ser]['sftp'], \
-															data_path=os.path.join(script_processed, req_res_path_per_request))
-											if res_sftp:
-												# sftp transfer succeeded 
-												mes_time = time.time()
-												self.req_list[request]['services'][service_name]['sftp'] = {'sent':mes_time}
-												flog.write("Transfer to SFTP Server succeeded at " + repr(mes_time) + "\n")
-												
-												# Update central middleware log if required
-												mes = {'request':request, 'service':service_name, 'sftp':{'sent':mes_time}}
-												self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
-												
-											else:
-												# sftp transfer failed
-												flog.write("Transfer to SFTP Server failed at  " + repr(time.time()) + "\n")
+										# If SFTP is enabled, then transfer required results using SFTP
+										if 'sftp' in conf_in['services'][ser]:
+											self.req_list[request]['services'][service_name]['sftp'] = []
+											for sftp_sec in conf_in['services'][ser]['sftp']:
+												if self.checkTransfer(sftp_sec['transfer'], servs, ser, os.path.join(script_path_in, request), flog):
+													res_sftp = self.sftpTransfer(user_sftp_conf=sftp_sec, \
+																	data_path=os.path.join(script_processed, req_res_path_per_request))
+													if res_sftp:
+														# sftp transfer succeeded 
+														mes_time = time.time()
+														self.req_list[request]['services'][service_name]['sftp'].append({'sent':mes_time,'sftp_server':sftp_sec['host']})
+														flog.write("Transfer to SFTP Server succeeded at " + repr(mes_time) + "\n")
+														
+														# Update central middleware log if required
+														mes = {'request':request, 'service':service_name, 'sftp':{'sent':mes_time,'sftp_server':sftp_sec['host']}}
+														self.logToMiddleware(middleware_conf=conf['middleware']['log'], body=mes)
+														
+													else:
+														# sftp transfer failed
+														flog.write("Transfer to SFTP Server "+str(sftp_sec['host'])+" failed at  " + repr(time.time()) + os.linesep)
 														
 									else:
 										# Service failed

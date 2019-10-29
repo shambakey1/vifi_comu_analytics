@@ -61,8 +61,9 @@ services:                    # Group of required services for current request. T
   - nam_out:/data/output/CORDEX/analysis:rw
   results: &results                  # Set of result files/directories of the service
   toremove:                 # List of files/directories to remove after current service (iteration) because a new updated version of the file/folder should be received before the new service (iteration) starts
-#  - a.out                   # File
-#  - b                       # Directory
+  - a.out                   # File
+  - b                       # Directory
+  - '*.csv'                 # Pattern
   ser_check_thr: 300         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
     transfer: 
@@ -74,7 +75,7 @@ services:                    # Group of required services for current request. T
     - 'nll.out'
     - 'thetas.out'
   sftp:                        # This section for SFTP Server transfer of specified results
-    transfer: 
+  - transfer: 
      condition: 'last_iteration or stop_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one. Different conditions can be combined by different logical operands (e.g., and, or, not)
     host: 'vifiuitasks-aws.uncc.edu'
     port: 22
@@ -101,7 +102,8 @@ services:                    # Group of required services for current request. T
     target_remote_input_port: 'null requests' # The input port of the target remote process group. 'null requests' is the default input port in the remote process group
     results: 
     - a.out
-    - b.out  
+    - b.out 
+    - '*.csv' 
  
  ocw_cordex_stg2:                       # Service name. Should be unique all over VIFI system (e.g., username<UUID>)
   iterative:                # This section specifies the repeation conditions for current service (e.g., maximum iteration numbers and/or other repeatition conditions). Iterative specification runs the same service multiple time SERIALLY, while 'tasks' subsection runs parallel instances of the same service SIMULTANEOUSLY  
@@ -140,9 +142,12 @@ services:                    # Group of required services for current request. T
    - action: move             # Default action
    'stop.iterating':          # Special VIFI file that indicates that iteraion should stop. VIFI requires 'stop.iterating' file to exist under the user root request folder. Otherwise, VIFI will not be able to determine whether to stop iteration or not. Therefore, if it is required to transfer this file to other remove VIFI nodes (for other nodes to stop iteration), then 'stop.iterating' should be copied, not moved, to the 'results' folder under the current user root request folder
    - action: copy
+   '*.csv':                   # Patterns can be used to specify set of files/directories
+   - action: move
   toremove:                 # List of files/directories to remove after current service (iteration) because a new updated version of the file/folder should be received before the new service (iteration) starts
-#  - a.out                   # File
-#  - b                       # Directory
+  - a.out                   # File
+  - b                       # Directory
+  - '*.csv'                 # Patterns can be used to specify set of files/directories
   ser_check_thr: 3600         # Service check threshold (ttl) to check service completness
   s3:                        # This section for S3 bucket transfer of specified results
     transfer: 
@@ -151,7 +156,7 @@ services:                    # Group of required services for current request. T
     path: jpl_cordex
     results: *results1                 # Result files/directories that shoul be transfered. This section can refer to the genral results section, or specifiy its own results
   sftp:                        # This section for SFTP Server transfer of specified results
-    transfer: 
+  - transfer: 
      condition: 'last_iteration or stop_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one. Different conditions can be combined by different logical operands (e.g., and, or, not)
     host: 'vifiuitasks-aws.uncc.edu'
     port: 22
@@ -162,6 +167,7 @@ services:                    # Group of required services for current request. T
     - 'grad.out'
     - 'nll.out'
     - 'thetas.out'
+    - '*.csv'
   nifi:                        # This section for NIFI transfer of specified results
   - transfer: 
      condition: 'all_but_last_iteration'  # Different values of this parameter include: 'all' to alawys transfer results for each iteration, 'never' to transfer nothing at any iteration, 'last_iteration' to transfer results only at last iteration, 'all_but_last_iteration' to transer results from all iterations except the last one
