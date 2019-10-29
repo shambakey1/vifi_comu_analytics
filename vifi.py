@@ -898,30 +898,33 @@ class vifi():
 		
 		try:
 			
-			for f_res in conf:
-				# Check if the result is file or directory
-				if os.path.isfile(os.path.join(res_cur_dir, f_res)):  # Result is file
-					# Perform required sequence of actions on result files
-					for act in conf[f_res]:
-						if act['action'].lower() == 'copy':
-							# print('DEBUG: actOnResult: copy file '+str(os.path.join(res_cur_dir,f_res))+' to '+str(os.path.join(res_cur_dir,res_dest_dir,f_res))+'\n')
-							shutil.copy(os.path.join(res_cur_dir, f_res), os.path.join(res_cur_dir, res_dest_dir, f_res))
+			#for f_res in conf:
+			for i in conf:
+				for j in glob.glob(os.path.join(res_cur_dir,i)):	# If the result name is specified with pattern, instead of literal name, then the result name should be extended first to all matching files and directories
+					for f_res in j:
+						# Check if the result is file or directory
+						if os.path.isfile(f_res):  # Result is file
+							# Perform required sequence of actions on result files
+							for act in conf[i]:
+								if act['action'].lower() == 'copy':
+									# print('DEBUG: actOnResult: copy file '+str(os.path.join(res_cur_dir,f_res))+' to '+str(os.path.join(res_cur_dir,res_dest_dir,f_res))+'\n')
+									shutil.copy(f_res, os.path.join(res_cur_dir, res_dest_dir, i))
+								else:
+									# print('DEBUG: actOnResult: move file '+str(os.path.join(res_cur_dir,f_res))+' to '+str(os.path.join(res_cur_dir,res_dest_dir,f_res))+'\n')
+									shutil.move(f_res, os.path.join(res_cur_dir, res_dest_dir, i))
+						elif os.path.isdir(f_res):  # Result is a directory
+							# Remove the directory from the destination path if already exist there
+							if os.path.isdir(os.path.join(res_cur_dir, res_dest_dir, i)):
+								shutil.rmtree(os.path.join(res_cur_dir, res_dest_dir, i))
+							# Perform required set of actions on result directories
+							for act in conf[i]:
+								if act['action'].lower() == 'copy':	
+									shutil.copytree(f_res, os.path.join(res_cur_dir, res_dest_dir, i))
+								else:
+									shutil.move(f_res, os.path.join(res_cur_dir, res_dest_dir, i))	
 						else:
-							# print('DEBUG: actOnResult: move file '+str(os.path.join(res_cur_dir,f_res))+' to '+str(os.path.join(res_cur_dir,res_dest_dir,f_res))+'\n')
-							shutil.move(os.path.join(res_cur_dir, f_res), os.path.join(res_cur_dir, res_dest_dir, f_res))
-				elif os.path.isdir(os.path.join(res_cur_dir, f_res)):  # Result is a directory
-					# Remove the directory from the destination path if already exist there
-					if os.path.isdir(os.path.join(res_cur_dir, res_dest_dir, f_res)):
-						shutil.rmtree(os.path.join(res_cur_dir, res_dest_dir, f_res))
-					# Perform required set of actions on result directories
-					for act in conf[f_res]:
-						if act['action'].lower() == 'copy':	
-							shutil.copytree(os.path.join(res_cur_dir, f_res), os.path.join(res_cur_dir, res_dest_dir, f_res))
-						else:
-							shutil.move(os.path.join(res_cur_dir, f_res), os.path.join(res_cur_dir, res_dest_dir, f_res))	
-				else:
-					if flog:
-						flog.write("Cannot find result " + os.path.join(res_cur_dir, f_res) + " at " + repr(time.time()) + "\n")
+							if flog:
+								flog.write("Cannot find result " + f_res + " at " + repr(time.time()) + "\n")
 		
 		except:
 			
@@ -947,12 +950,14 @@ class vifi():
 		'''
 		
 		try:
-			for f in conf:
-				# print("DEBUG: remove result "+str(f)+" from path "+str(data_path)+"\n")
-				if os.path.isfile(os.path.join(data_path, f)):  # To remove a file
-					os.remove(os.path.join(data_path, f))
-				elif os.path.isdir(os.path.join(data_path, f)):  # To remove a folder
-					shutil.rmtree(os.path.join(data_path, f))
+			for i in conf:
+				for j in glob.glob(os.path.join(data_path,i)):	# If the result name is specified with pattern, instead of literal name, then the result name should be extended first to all matching files and directories
+					for f in j:
+						# print("DEBUG: remove result "+str(f)+" from path "+str(data_path)+"\n")
+						if os.path.isfile(f):  # To remove a file
+							os.remove(f)
+						elif os.path.isdir(f):  # To remove a folder
+							shutil.rmtree(f)
 		except:
 			result = 'Error: "toRemove" function has error(vifi_server): '
 			if flog:
