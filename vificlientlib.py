@@ -2,6 +2,7 @@ from flask import Flask, request
 from flask_restful import Api, Resource, reqparse
 import yaml, os, traceback
 from _io import TextIOWrapper
+from builtins import isinstance
 
 app = Flask(__name__)
 api = Api(app)
@@ -318,18 +319,156 @@ def setNiFiTransferCondition(reqargs:dict,flog:TextIOWrapper=None)->dict:
     else:
         return transfers
     
-def setNiFiTransfer(reqargs:dict,flog:TextIOWrapper=None)->dict:
-    ''' Create/Change a NiFi sent to specified NiFi destination.
-    @param reqargs: Request arguments including the service name to which NiFi will be changed/created
+def setNiFiTransferResultsConditions(reqargs:dict,flog:TextIOWrapper=None)->dict:
+    ''' Change NiFi results and/or conditions for a specific service. If results and/or conditions are not 
+    specified for a specific section, then keep the existing results and/or conditions. Otherwise, current results 
+    and/or conditions will be overwritten.
+    @param reqargs: Request arguments including the service name(s) to which NiFi settings will be changed
     @type reqargs: dict
     @param flog: Log file to record raised events
     @type flog: TextIOWrapper (file object) 
-    @return: NiFi transfer configurations of specified service
-    @rtype: List or dict  
+    @return: Message of success or failure of changing/creating the required NiFi settings
+    @rtype: dict  
     '''
     
-    #TODO
-    pass
+    # Check of the existence of the nifi section in input arguments, and the nifi secion is in list form
+    if 'nifi' not in reqargs:
+        return {failureRequestKey:"Input request arguments have no NiFi section"}
+    if not isinstance(reqargs['nifi'],list):
+        return {failureRequestKey:"Input NiFi section should be in list form"}
+    
+    # Extract the NiFi settings from the user configuration file    
+    nifitransfers=getNiFiTransfers(reqargs, flog)
+    if successRequestKey in nifitransfers:
+        nifitransfers=nifitransfers[successRequestKey]    
+        # Traverse required input settings
+        for sec in reqargs['nifi']:
+            # Check if target argument is specified
+            if 'target' in sec:
+                target=sec['target']
+                # Extract the required nifi transfer
+                nifitransfer={}
+                for nifitransfer in nifitransfers:
+                    if nifitransfer['target_uri']==target:
+                        # Change the condition in the extracted NiFi if any
+                        if 'condition' in sec:
+                            nifitransfer['transfer']['condition']=sec['condition']
+                        # Change the results in the extracted NiFi if any
+                        if 'results' in sec:
+                            if isinstance(sec['results'],list):
+                                nifitransfer['results']=sec['results']
+                            else:
+                                return {failureRequestKey:'Results should be in a list'}
+                        # Exit loop
+                        break
+                # If no NiFi section was found with required target, then inform the user that it does not exist
+                if not nifitransfer:
+                    return {failureRequestKey:'The specified NiFi target, '+str(target)+", was not found in current configuration"+os.linesep}
+            else:
+                return {failureRequestKey:'No target NiFi is specified for section '+str(sec)} 
+        
+        # Get the path of the configuration file
+        if 'path' in reqargs:
+            path=reqargs['path']
+        else:
+            path='conf.yml'
+        # Update the configuration file
+        with open(path,'r') as f:
+            conf=yaml.load(f)
+        with open(path,'w') as f:
+            conf['services'][reqargs['service']]['nifi']=nifitransfers
+            yaml.dump(conf,f)   
+        return {successRequestKey:'Results and/or conditions for nifi transfer have been updated'+os.linesep}
+       
+    else:   # Something went wrong in extracting nifi transfers. Just return the error 
+        return nifitransfers
+
+def setSFTPTransferResultsConditions(reqargs:dict,flog:TextIOWrapper=None)->dict:
+    ''' Change SFTP results and/or conditions for a specific service. If results and/or conditions are not 
+    specified for a specific section, then keep the existing results and/or conditions. Otherwise, current results 
+    and/or conditions will be overwritten.
+    @param reqargs: Request arguments including the service name(s) to which NiFi settings will be changed
+    @type reqargs: dict
+    @param flog: Log file to record raised events
+    @type flog: TextIOWrapper (file object) 
+    @return: Message of success or failure of changing/creating the required NiFi settings
+    @rtype: dict  
+    '''
+    
+    # Check of the existence of the nifi section in input arguments, and the nifi secion is in list form
+    if 'sftp' not in reqargs:
+        return {failureRequestKey:"Input request arguments have no SFTP section"}
+    if not isinstance(reqargs['sftp'],list):
+        return {failureRequestKey:"Input SFTP section should be in list form"}
+    
+    # Extract the SFTP settings from the user configuration file    
+    transfers=getSFTPTransfers(reqargs, flog)
+    if successRequestKey in transfers:
+        transfers=transfers[successRequestKey]    
+        # Traverse required input settings
+        for sec in reqargs['sftp']:
+            # Check if target argument is specified
+            if 'target' in sec:
+                target=sec['target']
+                # Extract the required nifi transfer
+                transfer={}
+                for transfer in transfers:
+                    if transfer['host']==target:
+                        # Change the condition in the extracted NiFi if any
+                        if 'condition' in sec:
+                            transfer['transfer']['condition']=sec['condition']
+                        # Change the results in the extracted NiFi if any
+                        if 'results' in sec:
+                            if isinstance(sec['results'],list):
+                                transfer['results']=sec['results']
+                            else:
+                                return {failureRequestKey:'Results should be in a list'}
+                        # Exit loop
+                        break
+                # If no SFTP section was found with required target, then inform the user that it does not exist
+                if not transfer:
+                    return {failureRequestKey:'The specified NiFi target, '+str(target)+", was not found in current configuration"+os.linesep}
+            else:
+                return {failureRequestKey:'No target SFTP is specified for section '+str(sec)} 
+        
+        # Get the path of the configuration file
+        if 'path' in reqargs:
+            path=reqargs['path']
+        else:
+            path='conf.yml'
+        # Update the configuration file
+        with open(path,'r') as f:
+            conf=yaml.load(f)
+        with open(path,'w') as f:
+            conf['services'][reqargs['service']]['sftp']=transfers
+            yaml.dump(conf,f)   
+        return {successRequestKey:'Results and/or conditions for SFTP transfer have been updated'+os.linesep}
+       
+    else:   # Something went wrong in extracting nifi transfers. Just return the error 
+        return transfers
+
+def testVIFIClientRestAPI(reqargs:list,flog:TextIOWrapper=None)->dict:
+    ''' Test method for the developed REST APIs that print the contents 
+    @param reqargs: List of request arguments including the service name(s) to which NiFi will be changed/created
+    @type reqargs: dict
+    @param flog: Log file to record raised events
+    @type flog: TextIOWrapper (file object) 
+    @return: Message of success or failure of changing/creating the required NiFi settings
+    @rtype: dict  
+    '''
+    
+    if isinstance(reqargs,list):
+        for i in reqargs:
+            if isinstance(i, dict):
+                for k,v in i.items():
+                    print("key: ",str(k),", value: "+str(v))
+            print(os.linesep)
+    elif isinstance(reqargs, dict):
+        for k,v in reqargs.items():
+            print("key: ",str(k),", value: "+str(v))
+    else:
+        print(str(reqargs))
+
 
 class User(Resource):
 
@@ -340,6 +479,9 @@ class User(Resource):
                 return conf[successRequestKey], 200
             else:
                 return conf[failureRequestKey], 404
+            
+        elif name.lower()=='test':  # Test REST APIs
+            testVIFIClientRestAPI(request.get_json())
     
         elif name.lower()=='services':  # Return all services in the user configuration file
             services=getServices(request.get_json())
@@ -375,6 +517,9 @@ class User(Resource):
                 return transfers[successRequestKey],200
             else:
                 return transfers[failureRequestKey],404
+            
+        elif name.lower()=='test':              # Test function for REST APIs. It just prints the sent message
+            testVIFIClientRestAPI(request.get_json())
 
     def post(self, name):
         parser = reqparse.RequestParser()
@@ -413,6 +558,19 @@ class User(Resource):
                 return res[successRequestKey], 200
             else:
                 return res[failureRequestKey],404
+        elif name.lower()=='changenifitransferresultsconditions':   # Change NiFi results and/or conditions for one or more sections
+            res=setNiFiTransferResultsConditions(request.get_json())
+            if successRequestKey in res:
+                return res[successRequestKey], 200
+            else:
+                return res[failureRequestKey],404
+        
+        elif name.lower()=='changesftptransferresultsconditions':   # Change NiFi results and/or conditions for one or more sections
+            res=setSFTPTransferResultsConditions(request.get_json())
+            if successRequestKey in res:
+                return res[successRequestKey], 200
+            else:
+                return res[failureRequestKey],404        
         else:
             return 'No valid operation has been specified', 404        
 

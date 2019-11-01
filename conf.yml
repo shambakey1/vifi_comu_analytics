@@ -6,6 +6,7 @@ fin_dest:
     password: osdjf09efjjsflzjdfjweij09ej0fjdjfa, port: 22, transfer: false, username: nifisftp}
   transfer: false
 services:
+  curserv: pre_services
   ocw_cordex_stg1:
     args: [NAM-44, /data/output/CORDEX/analysis, /data/input/obs4mips, /data/input/CORDEX/NAM-44/*]
     cmd_eng: python
@@ -30,8 +31,8 @@ services:
       transfer: {condition: all_but_last_iteration}
     - archname: jpl_cordex_sg1
       archtype: zip
-      results: [a.out, b.out]
-      target_remote_input_port: null requests
+      results: [a.out, b.out, '*.csv']
+      target_remote_input_port: null requests1
       target_uri: e.f.g.h
       transfer: {condition: all_but_last_iteration}
     results: null
@@ -43,7 +44,7 @@ services:
     script: cordex1.py
     ser_check_thr: 300
     sftp:
-      dest_path: /home/nifisftp/stat_analysis
+    - dest_path: /home/nifisftp/stat_analysis
       host: vifiuitasks-aws.uncc.edu
       password: osdjf09efjjsflzjdfjweij09ej0fjdjfa
       port: 22
@@ -51,7 +52,7 @@ services:
       transfer: {condition: last_iteration or stop_iteration}
       username: nifisftp
     tasks: 1
-    toremove: null
+    toremove: [a.out, b, '*.csv']
     work_dir: null
   ocw_cordex_stg2:
     args: [/data/output/CORDEX/analysis/config_files.csv]
@@ -68,40 +69,48 @@ services:
     image: shambakey1/ocw_cordex
     iterative: {cur_iter: 0, max_rep: 1}
     mnts: ['cordex2.py:/usr/local/climate/RCMES/CORDEX/cordex2.py', 'nam_out:/data/output/CORDEX/analysis:rw']
-    nam_out:
-    - {action: move}
     nifi:
     - archname: jpl_cordex_sg1
       archtype: zip
-      results: f.out
-      target_remote_input_port: null requests
-      target_uri: a.b.c.d
+      results:
+        '*.csv':
+        - {action: move}
+        nam_out:
+        - {action: move}
+        stop.iterating:
+        - {action: copy}
+      target_remote_input_port: test1
+      target_uri: test1
       transfer: {condition: never}
     - archname: jpl_cordex_sg1
       archtype: zip
-      results: [a.out, b.out]
-      target_remote_input_port: null requests
-      target_uri: e.f.g.h
-      transfer: {condition: all_but_last_iteration}
-    results: null
+      results: [d.out]
+      target_remote_input_port: test2
+      target_uri: test2
+      transfer: {condition: all}
+    results: &id001
+      '*.csv':
+      - {action: move}
+      nam_out:
+      - {action: move}
+      stop.iterating:
+      - {action: copy}
     s3:
       bucket: uncc-vifi-bucket
       path: jpl_cordex
-      results: null
+      results: *id001
       transfer: {condition: last_iteration or stop_iteration}
     script: cordex2.py
     ser_check_thr: 3600
     sftp:
-      dest_path: /home/nifisftp/stat_analysis
+    - dest_path: /home/nifisftp/stat_analysis
       host: vifiuitasks-aws.uncc.edu
       password: osdjf09efjjsflzjdfjweij09ej0fjdjfa
       port: 22
-      results: [grad.out, nll.out, thetas.out]
-      transfer: {condition: last_iteration or stop_iteration}
+      results: [grad.out, nll.out, thetas.out, '*.csv']
+      transfer: {condition: all}
       username: nifisftp
-    stop.iterating:
-    - {action: copy}
     tasks: 1
-    toremove: null
+    toremove: [a.out, b, '*.csv']
     work_dir: null
 userid: jpl_cordex_sg1

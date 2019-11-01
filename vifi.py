@@ -1911,7 +1911,7 @@ class vifi():
 									continue
 								
 								# Record service name as current service being processed
-								conf_in['services']['curserv']=ser
+								conf_in['curserv']=ser
 								self.dump_conf(conf_in, os.path.join(script_path_in, request, conf_file_name), flog)
 								
 								# Set current service iteration
@@ -2039,7 +2039,7 @@ class vifi():
 										res_uuid = str(uuid.uuid1())
 											
 										# IF S3 IS ENABLED, THEN TRANSFER REQUIRED RESULT FILES TO S3 BUCKET
-										if self.checkTransfer(conf_in['services'][ser]['s3']['transfer'], servs, ser, os.path.join(script_path_in, request), flog) and conf_in['services'][ser]['s3']['bucket']:  # s3_transfer is True and s3_buc has some value
+										if self.checkTransfer(conf_in['services'][ser]['s3']['transfer'], servs, ser, os.path.join(script_path_in, request), flog) and conf_in['services'][ser]['s3']['results'] and conf_in['services'][ser]['s3']['bucket'] :  # s3_transfer is True and there are specified results to transfer, if exist, and s3_buc has some value
 											self.s3Transfer(conf_in['services'][ser]['s3'], \
 														os.path.join(script_processed, req_res_path_per_request))
 											mes_time = time.time()
@@ -2054,7 +2054,7 @@ class vifi():
 										if 'nifi' in conf_in['services'][ser]:
 											self.req_list[request]['services'][service_name]['nifi'] = []
 											for nifi_sec in conf_in['services'][ser]['nifi']:
-												if self.checkTransfer(nifi_sec['transfer'], servs, ser, os.path.join(script_path_in, request), flog):
+												if self.checkTransfer(nifi_sec['transfer'], servs, ser, os.path.join(script_path_in, request), flog) and nifi_sec['results']:
 													res_name = self.nifiTransfer(user_nifi_conf=nifi_sec, \
 																	data_path=os.path.join(script_processed, req_res_path_per_request), \
 																	res_id=res_uuid, pg_name=dset, \
@@ -2076,7 +2076,7 @@ class vifi():
 										if 'sftp' in conf_in['services'][ser]:
 											self.req_list[request]['services'][service_name]['sftp'] = []
 											for sftp_sec in conf_in['services'][ser]['sftp']:
-												if self.checkTransfer(sftp_sec['transfer'], servs, ser, os.path.join(script_path_in, request), flog):
+												if self.checkTransfer(sftp_sec['transfer'], servs, ser, os.path.join(script_path_in, request), flog) and sftp_sec['results']:
 													res_sftp = self.sftpTransfer(user_sftp_conf=sftp_sec, \
 																	data_path=os.path.join(script_processed, req_res_path_per_request))
 													if res_sftp:
@@ -2125,7 +2125,7 @@ class vifi():
 							self.req_list[request]['end'] = req_end_time
 							
 							# Update 'curserv' (i.e., current service) in request configuration file to indicate that all services have been processed
-							conf_in['services']['curserv']='post_services'
+							conf_in['curserv']='post_services'
 							self.dump_conf(conf_in, os.path.join(script_path_in, request, conf_file_name), flog)
 							
 							# Update central middleware log if required
