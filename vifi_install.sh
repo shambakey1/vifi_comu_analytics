@@ -89,4 +89,4 @@ sudo chmod -R 777 $vifi			# To simplify VIFI management in current development p
 sudo chown -R nobody:nogroup $vifi	
 
 ######## NOTE: TO RUN THE VIFI SERVER FOR A SPECIFI SET ###########
-python vifi.py --sets JPL_cordex --vifi_conf ./vifi_config.yml &> err.log
+python vifi.py --sets <set_name> --vifi_conf ./vifi_config.yml &> err.log &
