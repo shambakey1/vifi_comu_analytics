@@ -1703,7 +1703,7 @@ class vifi():
 			if os.path.isfile(stop_itarting_path):
 				return False
 			if iter_conf:
-				if str.lower(iter_conf['max_rep'])=='inf' or ser_it_no < iter_conf['max_rep']:
+				if str.lower(str(iter_conf['max_rep']))=='inf' or ser_it_no < iter_conf['max_rep']:
 					return True
 			
 			return False
