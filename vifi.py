@@ -1723,7 +1723,7 @@ class vifi():
 		''' Retreive the last state of user's request. The request state includes:
 		- The name of each service, the maximum iterations of the service, and the current iteration number of the service
 		@param conf: User request configuration file
-		@type conf: dict
+		@type conf: dict 
 		@param flog: Log file to record raised events
 		@type flog: TextIOWrapper (file object)
 		@return: The request last state dictionary
