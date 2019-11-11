@@ -2262,41 +2262,53 @@ class vifi():
 		import logging
 		from vifi import vifi
 		
-		logger = multiprocessing.log_to_stderr()
-		# logger.setLevel(logging.INFO)
-		# logger.warning('doomed')
-		logger.setLevel(logging.DEBUG)
-		
 		# Parse input arguments
 		parser = argparse.ArgumentParser()
 		parser.add_argument('--sets', nargs='*', help='List of sets to be processed', default=None)  # List of sets to be processed
 		parser.add_argument('--vifi_conf', help='VIFI configuration file for current instance of VIFI server', default='vifi_config.yaml')  # List of sets to be processed
+		parser.add_argument('--mprocess', help='Run VIFI in multiprocessing mode if yes. "No" is useful for debugging', default='yes')  # Run VIFI in multiprocessing mode if yes. "No" is useful for debugging
 		arguments = parser.parse_args()
+		mp=str.lower(arguments.mprocess)
 		
-		# Create a VIFI server instance (Created by BaseManager to be shared between processes)
-		BaseManager.register('vifi', vifi)
-		m = BaseManager()
-		m.start()
-		s = m.vifi(arguments.vifi_conf)
-		
-		# Create list of processes to run different VIFI functionalities
-		p = []
-		p.append(Process(target=s.unpackCompressedRequestsLoop, kwargs={'sets':arguments.sets}))
-		p.append(Process(target=s.vifiRunLoop, kwargs={'sets':arguments.sets}))
-		
-		# Run the created VIFI processes
-		for i in p:
-			i.start()
-
-		# Keep running VIFI server till receiving a STOP request 
-		while True:
-			lines = select.select([sys.stdin], [], [], 1)[0]
-			if 'stop' in [x.readline().strip().lower() for x in lines]:
-				p1 = Process(target=s.end)
-				p1.start()
-				p1.join()
-				break
-		for i in p:
-			i.join()
-		p.clear()
+		if mp=='yes':	# Run VIFI in multiprocessing mode
+			logger = multiprocessing.log_to_stderr()
+			# logger.setLevel(logging.INFO)
+			# logger.warning('doomed')
+			logger.setLevel(logging.DEBUG)
+	
+			# Create a VIFI server instance (Created by BaseManager to be shared between processes)
+			BaseManager.register('vifi', vifi)
+			m = BaseManager()
+			m.start()
+			s = m.vifi(arguments.vifi_conf)
+			
+			# Create list of processes to run different VIFI functionalities
+			p = []
+			p.append(Process(target=s.unpackCompressedRequestsLoop, kwargs={'sets':arguments.sets}))
+			p.append(Process(target=s.vifiRunLoop, kwargs={'sets':arguments.sets}))
+			
+			# Run the created VIFI processes
+			for i in p:
+				i.start()
+	
+			# Keep running VIFI server till receiving a STOP request 
+			while True:
+				lines = select.select([sys.stdin], [], [], 1)[0]
+				if 'stop' in [x.readline().strip().lower() for x in lines]:
+					p1 = Process(target=s.end)
+					p1.start()
+					p1.join()
+					break
+			for i in p:
+				i.join()
+			p.clear()
+			
+		else:	# Run VIFI in a single main process. Useful for debugging
+			while True:
+				v=vifi(arguments.vifi_conf)
+				v.unpackCompressedRequests(sets=arguments.sets)
+				v.vifiRunLoop(sets=arguments.sets)
+				time.sleep(1)
+			
+			
 				
