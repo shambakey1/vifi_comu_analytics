@@ -34,8 +34,8 @@ sudo mkdir -m 777 -p $nifi_root
 cd $nifi_root
 wget $nifi_download_path
 unzip $nifi_src
+You may need to adjust the nifi.remote.input.host=<current machine name on the internet> in the nifi.proprties file
 sudo $nifi/bin/nifi.sh install	# To install nifi as a service
-# You may need to adjust the web http host in the nifi.proprties file
 # Make sure port 8080 is open and free. Otherwise, open it for NiFi. If you are going to use another port for NiFi (e.g., 8090), then open that other port (e.g., 8090) as follows:
 sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
 sudo iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
