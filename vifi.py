@@ -1088,7 +1088,7 @@ class vifi():
 						
 			# Start the 'get results' processor to start transferring results file
 			canvas.schedule_processor(tr_res_get_results, True)
-			while canvas.get_processor(tr_res_get_results.component.name).revision.version == tr_res_get_results.revision.version:
+			while canvas.get_processor(tr_res_get_results.id, 'id').revision.version == tr_res_get_results.revision.version:
 				# TODO: I think there should be a more restrict condition than checking version to ensure the processor has run 
 				pass
 			
