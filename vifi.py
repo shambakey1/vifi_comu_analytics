@@ -583,7 +583,7 @@ class vifi():
 			# Now, create the required (docker) service, and return it
 			return client.services.create(name=service_name, mode={'Replicated':{'Replicas':docker_rep}}, restart_policy=\
 								{'condition':'on-failure'}, mounts=mnts, workdir=work_dir, env=envs, image=docker_img, \
-								command=docker_cmd + ' ' + script, args=user_args, user=user, groups=groups)
+								command=docker_cmd + ' ' + script, args=[str(i) for i in user_args], user=user, groups=groups)
 		except:
 			result = 'Error: "createUserService" function has error(vifi_server): '
 			if flog:
