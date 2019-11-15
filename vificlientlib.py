@@ -91,7 +91,7 @@ def getCurrentService(reqargs:dict,flog:TextIOWrapper=None)->str:
     if successRequestKey in conf:
         conf=conf[successRequestKey]
         if 'services' in conf:
-            return {successRequestKey:conf['services']['curserv']}
+            return {successRequestKey:conf['curserv']}
         else:
             return {failureRequestKey:'Could not find a record for current running service'}
     else:
